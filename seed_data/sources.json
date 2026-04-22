@@ -1,0 +1,32 @@
+[
+  {
+    "id": "src_001",
+    "name": "Election Commission of India (ECI) Official Website",
+    "url": "https://eci.gov.in/",
+    "type": "official_commission",
+    "owner": "content_team",
+    "last_verified_at": "2024-05-01T00:00:00Z",
+    "status": "approved",
+    "description": "Primary source for all election guidelines, timelines, and manuals."
+  },
+  {
+    "id": "src_002",
+    "name": "National Voters' Services Portal (NVSP)",
+    "url": "https://voters.eci.gov.in/",
+    "type": "official_registration",
+    "owner": "content_team",
+    "last_verified_at": "2024-05-01T00:00:00Z",
+    "status": "approved",
+    "description": "Source for voter registration, EPIC download, and electoral roll search procedures."
+  },
+  {
+    "id": "src_003",
+    "name": "ECI Voter Education / SVEEP",
+    "url": "https://ecisveep.nic.in/",
+    "type": "civic_education",
+    "owner": "content_team",
+    "last_verified_at": "2024-05-01T00:00:00Z",
+    "status": "approved",
+    "description": "Systematic Voters' Education and Electoral Participation. Source for plain-language FAQs and guides."
+  }
+]
