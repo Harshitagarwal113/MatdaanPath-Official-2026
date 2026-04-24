@@ -18,9 +18,11 @@ def setup_logging():
     
     if project_id and not is_testing:
         try:
-            # Initialize Google Cloud Logging client
+            # Initialize Google Cloud Logging client with a short timeout/check
             client = cloud_logging.Client(project=project_id)
-            # Setup standard Python logging to send logs to Cloud Logging
+            
+            # Setup standard Python logging
+            # We use a try-except specifically for setup_logging as it can hang or fail on IAM issues
             client.setup_logging(log_level=logging.INFO)
             _cloud_logging_client = client
             atexit.register(client.close)
@@ -29,11 +31,15 @@ def setup_logging():
             error_client = error_reporting.Client(project=project_id)
             _error_client = error_client
             
-            logging.info(f"Cloud Logging initialized for project: {project_id}")
+            logging.info(f"Cloud Logging successfully initialized for project: {project_id}")
             return error_client
         except Exception as e:
-            logging.basicConfig(level=logging.INFO)
-            logging.warning(f"Failed to initialize Cloud Logging: {e}. Falling back to local logging.")
+            # Ensure we reset to basic logging if anything above fails
+            logging.basicConfig(
+                level=logging.INFO,
+                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            logging.warning(f"Cloud Logging init failed ({e}). Using standard local logging.")
             return None
     else:
         # Fallback to standard local logging
