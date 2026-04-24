@@ -1,126 +1,172 @@
 :root {
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --secondary: #10b981;
-  --accent: #f59e0b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --background: #020617;
-  --glass-bg: rgba(15, 23, 42, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --radius: 20px;
-  --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  /* Elegant Minimalist Theme (Apple/Linear inspired) */
+  --bg-app: #fbfcfd;
+  --bg-surface: #ffffff;
+  --bg-muted: #f1f5f9;
+  
+  --brand-primary: #6366f1; /* Modern Indigo */
+  --brand-secondary: #4f46e5;
+  --brand-glow: rgba(99, 102, 241, 0.15);
+  
+  --text-main: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  
+  --border-subtle: rgba(0, 0, 0, 0.05);
+  --border-standard: #e2e8f0;
+  
+  --radius-xl: 24px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --shadow-premium: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  
+  --font-heading: var(--font-outfit), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
 }
 
 * {
   box-sizing: border-box;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--background);
+  font-family: var(--font-body);
+  background-color: var(--bg-app);
   color: var(--text-main);
   line-height: 1.6;
-  min-height: 100vh;
-  position: relative;
-  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Premium Animated Background */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: 
-    radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
-  z-index: -1;
-  animation: mesh 20s ease infinite alternate;
-}
-
-@keyframes mesh {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.1); }
-}
-
-.container {
-  max-width: 1000px;
+/* Page Layout */
+.app-container {
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
 }
 
-.glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  padding: 2.5rem;
-  transition: var(--transition);
-}
-
-.glass-panel:hover {
-  box-shadow: var(--shadow-lg);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-/* Typography Enhancements */
-.title-gradient {
-  background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 800;
+/* Modern Typography */
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-/* Premium Buttons */
-button {
-  all: unset;
+.hero-title {
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1;
+  color: #0f172a;
+}
+
+/* Premium Card Style */
+.card-premium {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-premium:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--border-standard);
+}
+
+/* Global Navigation Styles */
+.nav-bar {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Buttons */
+.btn-premium {
+  padding: 0.8rem 1.6rem;
+  border-radius: 100px; /* Pill shape */
+  font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0.875rem 1.75rem;
-  border-radius: 12px;
-  font-weight: 600;
-  transition: var(--transition);
-  position: relative;
+  gap: 0.6rem;
+  border: none;
+}
+
+.btn-brand {
+  background: var(--brand-primary);
+  color: white;
+  box-shadow: 0 4px 14px var(--brand-glow);
+}
+
+.btn-brand:hover {
+  background: var(--brand-secondary);
+  transform: scale(1.02);
+}
+
+/* Chat Styles (Integrated) */
+.chat-fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  color: white;
+  box-shadow: 0 8px 24px var(--brand-glow);
+  display: flex;
+  align-items: center;
+  z-index: 9999;
+  cursor: pointer;
+  border: none;
+}
+
+/* Accessibility Utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
-button.primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+/* Navigation Link Polishing */
+.nav-links-premium a {
+  position: relative;
+  transition: color 0.3s ease;
 }
 
-button.primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+.nav-links-premium a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--brand-primary);
+  transition: width 0.3s ease;
+  border-radius: 2px;
 }
 
-button.secondary {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  color: white;
+.nav-links-premium a:hover {
+  color: var(--brand-primary) !important;
 }
 
-button.secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Responsive Fixes */
-@media (max-width: 768px) {
-  .container { padding: 0 1rem; }
-  h1 { font-size: 2.5rem; }
+.nav-links-premium a:hover::after {
+  width: 100%;
 }

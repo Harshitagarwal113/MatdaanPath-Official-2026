@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bell } from 'lucide-react';
 import API_BASE_URL from '../lib/api';
 
 interface Deadline {
@@ -22,68 +24,33 @@ export default function ImportantDates({ regionId }: { regionId: number | null }
   }, [regionId]);
 
   return (
-    <div className="deadlines-container">
-      <h2 className="title-gradient">Critical Deadlines</h2>
-      <div className="deadline-grid">
-        {deadlines.map(d => (
-          <div key={d.id} className="deadline-card glass-panel">
-            <div className="date-badge">
-              <span className="day">{new Date(d.date).getDate()}</span>
-              <span className="month">{new Date(d.date).toLocaleString('default', { month: 'short' })}</span>
+    <div className="dates-clean">
+      <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <Bell size={18} color="var(--brand-orange)" /> Upcoming Deadlines
+      </h3>
+      <div className="dates-stack" role="list" aria-label="Upcoming deadlines list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {deadlines.length > 0 ? (
+          deadlines.map((d) => (
+            <div key={d.id} className="date-item" role="listitem" aria-label={`Deadline for ${d.name} on ${new Date(d.date).toDateString()}`} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div className="date-pill" style={{
+                background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '10px',
+                minWidth: '55px', textAlign: 'center', border: '1px solid var(--border-light)'
+              }}>
+                <div style={{ fontSize: '1rem', fontWeight: 800 }}>{new Date(d.date).getDate()}</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                  {new Date(d.date).toLocaleString('default', { month: 'short' })}
+                </div>
+              </div>
+              <div className="date-info">
+                <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{d.name}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Election {new Date(d.date).getFullYear()}</div>
+              </div>
             </div>
-            <div className="deadline-info">
-              <h3>{d.name}</h3>
-              <p>{d.description}</p>
-            </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No upcoming deadlines for this region.</p>
+        )}
       </div>
-
-      <style jsx>{`
-        .deadlines-container {
-          margin-bottom: 4rem;
-        }
-        .deadline-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 1.5rem;
-          margin-top: 2rem;
-        }
-        .deadline-card {
-          display: flex;
-          gap: 1.5rem;
-          align-items: center;
-          padding: 1.5rem !important;
-        }
-        .date-badge {
-          background: var(--primary);
-          padding: 1rem;
-          border-radius: 12px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          min-width: 70px;
-        }
-        .date-badge .day {
-          font-size: 1.5rem;
-          font-weight: 800;
-          color: white;
-        }
-        .date-badge .month {
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.8);
-          text-transform: uppercase;
-        }
-        .deadline-info h3 {
-          margin-bottom: 0.25rem;
-          font-size: 1.1rem;
-        }
-        .deadline-info p {
-          margin-bottom: 0;
-          font-size: 0.9rem;
-        }
-      `}</style>
     </div>
   );
 }
