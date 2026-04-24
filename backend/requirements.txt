@@ -6,3 +6,8 @@ psycopg2-binary
 pydantic
 python-dotenv
 google-genai
+google-cloud-logging
+google-cloud-error-reporting
+pytest
+pytest-asyncio
+httpx

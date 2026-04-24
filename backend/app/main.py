@@ -3,7 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 
+from app.core.logging import setup_logging, get_logger
+
 load_dotenv()
+error_client = setup_logging()
+logger = get_logger("matdaanpath")
+
 from app.api.timeline import router as timeline_router
 from app.api.eligibility import router as eligibility_router
 from app.api.glossary import router as glossary_router
@@ -15,6 +20,10 @@ app = FastAPI(
     description="Backend API for the Election Process Education Assistant",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("MatdaanPath API starting up...")
 
 # Configure CORS
 app.add_middleware(
