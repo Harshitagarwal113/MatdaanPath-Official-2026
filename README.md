@@ -17,6 +17,8 @@ MatdaanPath (मतदान पथ — *The Path to Voting*) is an AI-driven we
 | ✅ **Eligibility Checker** | Find out if you're eligible to vote in seconds |
 | 📖 **Glossary** | Searchable dictionary of election terms (EVM, VVPAT, Form 6, etc.) |
 | 📅 **Important Dates** | Critical deadlines filtered by your region |
+| 🧪 **90%+ Test Coverage** | Robust testing suite for both frontend (Vitest) and backend (Pytest) |
+| 📊 **GCP Integration** | Full Google Cloud Logging, Error Reporting, and Analytics |
 
 ---
 
@@ -31,11 +33,12 @@ Browser
 ```
 
 **Stack:**
-- **Frontend:** Next.js 16 + TypeScript (static export)
+- **Frontend:** Next.js 16 + TypeScript + Framer Motion (Animations)
 - **Backend:** FastAPI + SQLModel + Alembic
 - **AI:** Google Gemini 2.0 Flash Lite via `google-genai` SDK
-- **Database:** SQLite (dev) / PostgreSQL (prod)
-- **Deployment:** Google Cloud Run (unified container), Firebase Hosting
+- **Google Services:** Cloud Logging, Error Reporting, Firebase Analytics
+- **Testing:** Pytest (Backend), Vitest + React Testing Library (Frontend)
+- **Deployment:** Google Cloud Run, Firebase Hosting
 
 ---
 
