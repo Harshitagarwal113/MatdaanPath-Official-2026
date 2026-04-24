@@ -1,55 +1,106 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Bell } from 'lucide-react';
-import API_BASE_URL from '../lib/api';
+import { Bell } from "lucide-react";
+
+import { useApiResource } from "@/hooks/use-api-resource";
 
 interface Deadline {
   id: number;
   name: string;
   date: string;
-  description: string;
+  description?: string | null;
 }
 
-export default function ImportantDates({ regionId }: { regionId: number | null }) {
-  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
+const emptyDeadlines: Deadline[] = [];
+const deadlineDateFormatter = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
 
-  useEffect(() => {
-    const url = regionId ? `${API_BASE_URL}/api/deadlines/?region_id=${regionId}` : `${API_BASE_URL}/api/deadlines/`;
-    fetch(url)
-      .then(res => res.json())
-      .then(data => setDeadlines(data))
-      .catch(err => console.error("Error fetching deadlines:", err));
-  }, [regionId]);
+export default function ImportantDates({ regionId }: { regionId: number | null }) {
+  const requestKey = `deadlines:${regionId ?? "all"}`;
+  const requestPath = regionId ? `/api/deadlines/?region_id=${regionId}` : "/api/deadlines/";
+  const { data: deadlines, isLoading, error } = useApiResource<Deadline[]>(requestKey, requestPath, {
+    initialData: emptyDeadlines,
+  });
 
   return (
     <div className="dates-clean">
-      <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <Bell size={18} color="var(--brand-orange)" /> Upcoming Deadlines
+      <h3 style={{ fontSize: "1.1rem", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <Bell size={18} color="#f59e0b" /> Upcoming Deadlines
       </h3>
-      <div className="dates-stack" role="list" aria-label="Upcoming deadlines list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <p className="panel-note" style={{ marginBottom: "1.25rem" }}>
+        Regional selections include state-specific deadlines plus national events that still apply.
+      </p>
+
+      {error ? (
+        <p className="inline-alert" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {isLoading && deadlines.length === 0 ? (
+        <p className="status-note" role="status">
+          Loading upcoming deadlines...
+        </p>
+      ) : null}
+
+      <div
+        className="dates-stack"
+        role="list"
+        aria-label="Upcoming deadlines list"
+        style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+      >
         {deadlines.length > 0 ? (
-          deadlines.map((d) => (
-            <div key={d.id} className="date-item" role="listitem" aria-label={`Deadline for ${d.name} on ${new Date(d.date).toDateString()}`} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <div className="date-pill" style={{
-                background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '10px',
-                minWidth: '55px', textAlign: 'center', border: '1px solid var(--border-light)'
-              }}>
-                <div style={{ fontSize: '1rem', fontWeight: 800 }}>{new Date(d.date).getDate()}</div>
-                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                  {new Date(d.date).toLocaleString('default', { month: 'short' })}
+          deadlines.map((deadline) => {
+            const parsedDate = new Date(deadline.date);
+
+            return (
+              <div
+                key={deadline.id}
+                className="date-item"
+                role="listitem"
+                aria-label={`Deadline for ${deadline.name} on ${deadlineDateFormatter.format(parsedDate)}`}
+                style={{ display: "flex", gap: "1rem", alignItems: "center" }}
+              >
+                <div
+                  className="date-pill"
+                  style={{
+                    background: "#f8fafc",
+                    padding: "0.75rem",
+                    borderRadius: "10px",
+                    minWidth: "72px",
+                    textAlign: "center",
+                    border: "1px solid var(--border-standard)",
+                    flexShrink: 0,
+                  }}
+                >
+                  <div style={{ fontSize: "1rem", fontWeight: 800 }}>{parsedDate.getDate()}</div>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)" }}>
+                    {parsedDate.toLocaleString("default", { month: "short" })}
+                  </div>
+                </div>
+
+                <div className="date-info">
+                  <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>{deadline.name}</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                    {deadlineDateFormatter.format(parsedDate)}
+                  </div>
+                  {deadline.description ? (
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.25rem" }}>
+                      {deadline.description}
+                    </div>
+                  ) : null}
                 </div>
               </div>
-              <div className="date-info">
-                <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{d.name}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Election {new Date(d.date).getFullYear()}</div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No upcoming deadlines for this region.</p>
-        )}
+            );
+          })
+        ) : !isLoading ? (
+          <p className="empty-state" role="status">
+            No upcoming deadlines are available for this region yet.
+          </p>
+        ) : null}
       </div>
     </div>
   );

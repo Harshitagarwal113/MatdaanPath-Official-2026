@@ -1,9 +1,10 @@
-from sqlmodel import create_engine, Session
 import os
+from sqlmodel import Session, create_engine
 
 # Database URL configuration
 # For Cloud SQL: postgresql+psycopg2://<user>:<pass>@/<db>?host=/cloudsql/<project>:<region>:<instance>
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./matdaanpath.db")
+DEBUG_SQL = os.getenv("DEBUG_SQL", "false").lower() == "true"
 
 # Engine options
 connect_args = {}
@@ -17,9 +18,9 @@ elif "postgresql" in DATABASE_URL:
     }
 
 engine = create_engine(
-    DATABASE_URL, 
-    echo=True, 
-    connect_args=connect_args
+    DATABASE_URL,
+    echo=DEBUG_SQL,
+    connect_args=connect_args,
 )
 
 def get_session():

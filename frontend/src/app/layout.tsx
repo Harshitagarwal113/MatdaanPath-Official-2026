@@ -1,24 +1,38 @@
-import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
-import Script from "next/script";
+import type { Metadata, Viewport } from "next";
+
+import AppAnalytics from "@/components/AppAnalytics";
+
 import "./globals.css";
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  variable: '--font-inter',
-});
-
-const outfit = Outfit({ 
-  subsets: ["latin"],
-  variable: '--font-outfit',
-});
-
 export const metadata: Metadata = {
-  title: "MatdaanPath | Your Guide to Indian Elections",
+  metadataBase: new URL("https://matdaanpath-app-135105451054.asia-south1.run.app"),
+  title: {
+    default: "MatdaanPath | Your Guide to Indian Elections",
+    template: "%s | MatdaanPath",
+  },
   description: "An interactive AI-driven assistant to help you navigate the Indian democratic process with ease and accuracy.",
   keywords: ["Election", "India", "Voter", "Matdaan", "Democracy", "AI Assistant"],
+  applicationName: "MatdaanPath",
   authors: [{ name: "MatdaanPath Team" }],
-  viewport: "width=device-width, initial-scale=1",
+  manifest: "/manifest.webmanifest",
+  openGraph: {
+    title: "MatdaanPath | Your Guide to Indian Elections",
+    description: "Election education, deadlines, and AI assistance for Indian voters.",
+    type: "website",
+    locale: "en_IN",
+    siteName: "MatdaanPath",
+    url: "/",
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#6366f1",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -27,23 +41,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
-      <head>
-        {/* Google Analytics 4 (Simulated/Placeholder for Score) */}
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
-          `}
-        </Script>
-      </head>
-      <body className="page-wrapper">
+    <html lang="en">
+      <body>
+        <a className="skip-link" href="#main-content">
+          Skip to main content
+        </a>
+        <AppAnalytics />
         <header className="sr-only">
           <h1>MatdaanPath: Election Process Education Assistant</h1>
         </header>
@@ -51,7 +54,6 @@ export default function RootLayout({
         <main className="main-content" id="main-content">
           {children}
         </main>
-
       </body>
     </html>
   );

@@ -1,28 +1,64 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
-import ChatAssistant from '../components/ChatAssistant'
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock global fetch
-global.fetch = vi.fn()
+import ChatAssistant from "@/components/ChatAssistant";
 
-describe('ChatAssistant', () => {
-  it('renders the FAB button initially', () => {
-    render(<ChatAssistant />)
-    expect(screen.getByLabelText(/Open Chat Assistant/i)).toBeDefined()
-  })
+function jsonResponse(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
 
-  it('opens the chat window when clicked', async () => {
-    render(<ChatAssistant />)
-    const fab = screen.getByLabelText(/Open Chat Assistant/i)
-    fireEvent.click(fab)
-    expect(screen.getByText(/Election Assistant/i)).toBeDefined()
-  })
+const mockFetch = vi.fn();
+global.fetch = mockFetch as unknown as typeof fetch;
 
-  it('allows typing in the input field', () => {
-    render(<ChatAssistant />)
-    fireEvent.click(screen.getByLabelText(/Open Chat Assistant/i))
-    const input = screen.getByLabelText(/Chat input message/i) as HTMLInputElement
-    fireEvent.change(input, { target: { value: 'How to vote?' } })
-    expect(input.value).toBe('How to vote?')
-  })
-})
+describe("ChatAssistant", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it("renders the FAB button initially", () => {
+    render(<ChatAssistant />);
+    expect(screen.getByLabelText(/Open Chat Assistant/i)).toBeInTheDocument();
+  });
+
+  it("opens the chat window when clicked", () => {
+    render(<ChatAssistant />);
+    fireEvent.click(screen.getByLabelText(/Open Chat Assistant/i));
+    expect(screen.getByRole("dialog", { name: /Election Intelligence Assistant/i })).toBeInTheDocument();
+  });
+
+  it("allows typing in the input field", () => {
+    render(<ChatAssistant />);
+    fireEvent.click(screen.getByLabelText(/Open Chat Assistant/i));
+
+    const input = screen.getByLabelText(/Chat input message/i);
+    fireEvent.change(input, { target: { value: "How do I vote?" } });
+
+    expect(input).toHaveValue("How do I vote?");
+  });
+
+  it("sends a message and renders the AI response", async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ response: "You can register through the official voter portal." }));
+
+    render(<ChatAssistant />);
+    fireEvent.click(screen.getByLabelText(/Open Chat Assistant/i));
+
+    fireEvent.change(screen.getByLabelText(/Chat input message/i), {
+      target: { value: "How do I register?" },
+    });
+    fireEvent.click(screen.getByLabelText(/Send message/i));
+
+    await waitFor(() => {
+      expect(screen.getByText(/official voter portal/i)).toBeInTheDocument();
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/chat/"),
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+});

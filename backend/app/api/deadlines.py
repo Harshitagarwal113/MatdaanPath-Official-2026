@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List, Optional
+
 from app.core.database import get_session
-from app.models import Deadline, Region
+from app.models import Deadline, Election, Region
 
 router = APIRouter()
 
@@ -12,16 +13,23 @@ def get_deadlines(
     session: Session = Depends(get_session)
 ):
     """
-    Get all deadlines, optionally filtered by region.
+    Get all deadlines, optionally filtered by region while still including
+    national deadlines that apply everywhere.
     """
-    statement = select(Deadline)
+    statement = (
+        select(Deadline)
+        .join(Election, Deadline.election_id == Election.id, isouter=True)
+        .order_by(Deadline.date)
+    )
     if region_id:
-        # For now, show deadlines for the specific region or global ones
-        statement = statement.where(Deadline.election_id != None) # Simplified
+        statement = statement.where(
+            (Election.region_id == region_id) | (Election.region_id.is_(None))
+        )
         
     deadlines = session.exec(statement).all()
     return deadlines
 
 @router.get("/regions", response_model=List[Region])
 def get_regions(session: Session = Depends(get_session)):
-    return session.exec(select(Region)).all()
+    statement = select(Region).order_by(Region.name)
+    return session.exec(statement).all()

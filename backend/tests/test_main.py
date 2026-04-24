@@ -1,7 +1,6 @@
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
-from app.models import Stage, EligibilityRule, Election
+from app.models import Election, EligibilityRule, Stage
 
 def test_read_root(client: TestClient):
     response = client.get("/")
@@ -46,3 +45,4 @@ def test_get_eligibility_rules(client: TestClient, session: Session):
     data = response.json()
     assert len(data) == 1
     assert data[0]["question"] == "Are you 18?"
+    assert data[0]["requirement_description"] == "Must be 18"

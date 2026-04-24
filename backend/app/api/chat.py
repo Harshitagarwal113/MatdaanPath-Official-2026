@@ -1,8 +1,11 @@
 import os
+
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select
+
 from app.core.database import get_session
+from app.core.logging import get_logger, report_exception
 from app.models import GlossaryItem, Stage
 
 router = APIRouter()
@@ -52,7 +55,7 @@ _init_client()
 # ---------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(..., min_length=3, max_length=500)
 
 class ChatResponse(BaseModel):
     response: str
@@ -65,11 +68,9 @@ class ChatResponse(BaseModel):
 def get_context(query: str, session: Session) -> str:
     """Retrieves relevant context from the database based on the query."""
     context: list[str] = []
-    words = query.lower().split()
+    words = {word.strip(".,!?").lower() for word in query.split() if len(word) >= 3}
 
     for word in words:
-        if len(word) < 3:
-            continue
         items = session.exec(
             select(GlossaryItem).where(GlossaryItem.term.ilike(f"%{word}%"))
         ).all()
@@ -100,7 +101,6 @@ _SYSTEM_PROMPT = (
     "Use the following verified context from our database if relevant:\n"
 )
 
-from app.core.logging import get_logger
 logger = get_logger("chat")
 
 @router.post("/", response_model=ChatResponse)
@@ -110,7 +110,7 @@ async def chat(request: ChatRequest, session: Session = Depends(get_session)):
             status_code=503,
             detail="AI service not configured."
         )
-    logger.info(f"Chat request received: {request.message[:50]}...")
+    logger.info("Chat request received: %s...", request.message[:50])
     context = get_context(request.message, session)
     system_instruction = _SYSTEM_PROMPT + context
 
@@ -130,26 +130,40 @@ async def chat(request: ChatRequest, session: Session = Depends(get_session)):
         return ChatResponse(response=response.text)
 
     except Exception as exc:
-        error_msg = str(exc)
-        logger.error(f"ChatBot error: {error_msg}")
+        error_msg = str(exc).upper()
+        logger.exception("ChatBot error: %s", error_msg)
+        report_exception()
 
-        # Provide a helpful hint in the response rather than a raw stack trace
-        if "PERMISSION_DENIED" in error_msg or "403" in error_msg:
+        # Specific handling for Permission Denied (Project restricted/suspended)
+        if "PERMISSION_DENIED" in error_msg or "DENIED_ACCESS" in error_msg or "403" in error_msg:
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "The AI service returned a permission error. "
-                    "Please ensure the Gemini API is enabled for your Google Cloud project, "
-                    "or provide a valid GEMINI_API_KEY that starts with 'AI'."
+                    "The AI service project has been restricted or denied access. "
+                    "Please check your Google Cloud Console for project status or "
+                    "update the GEMINI_API_KEY with a fresh one from AI Studio."
                 ),
             )
+        
+        # Specific handling for Quota/Rate Limits
+        if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The AI service quota has been exhausted. "
+                    "The free tier has a limit of 1,500 requests per day. "
+                    "Please try again later or upgrade your plan."
+                ),
+            )
+
+        # Invalid Credentials
         if "API_KEY_INVALID" in error_msg or "401" in error_msg:
             raise HTTPException(
                 status_code=503,
-                detail="Invalid API key. Please update GEMINI_API_KEY in your .env file.",
+                detail="Invalid API key. Please update the GEMINI_API_KEY in your .env file.",
             )
 
         raise HTTPException(
             status_code=500,
-            detail=f"Error generating AI response: {error_msg}",
+            detail="Error generating AI response. Please try again later.",
         )

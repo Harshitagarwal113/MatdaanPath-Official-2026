@@ -1,17 +1,23 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
-from typing import List
+
 from app.core.database import get_session
 from app.models import Stage, Election, Deadline
 
 router = APIRouter()
 
 @router.get("", response_model=List[Stage])
-def get_default_timeline(session: Session = Depends(get_session)):
+def get_default_timeline(
+    election_id: int | None = None,
+    session: Session = Depends(get_session),
+):
     """
-    Get the ordered timeline stages for the first available election.
+    Get the ordered timeline stages for a specific election or the first
+    available election when no identifier is provided.
     """
-    election = session.exec(select(Election)).first()
+    election = session.get(Election, election_id) if election_id else session.exec(select(Election)).first()
     if not election:
         return []
     

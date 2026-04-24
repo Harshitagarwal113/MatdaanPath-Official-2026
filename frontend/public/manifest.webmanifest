@@ -1,0 +1,16 @@
+{
+  "name": "MatdaanPath",
+  "short_name": "MatdaanPath",
+  "description": "Election education, deadlines, and AI assistance for Indian voters.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fbfcfd",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

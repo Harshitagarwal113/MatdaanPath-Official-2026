@@ -1,65 +1,102 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import EligibilityChecker from '../components/EligibilityChecker'
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock the API base URL
-vi.mock('../lib/api', () => ({
-  default: 'http://localhost:8000'
-}))
+import EligibilityChecker from "@/components/EligibilityChecker";
 
-// Mock fetch
 const mockRules = [
-  { id: 1, question: "Are you 18?", requirement_description: "Legal age to vote" },
-  { id: 2, question: "Are you a citizen?", requirement_description: "Indian citizenship" }
-]
+  {
+    id: 1,
+    question: "Are you 18?",
+    requirement_description: "You must be at least 18 years old on the qualifying date.",
+    rule_key: "age",
+    sequence_order: 1,
+  },
+  {
+    id: 2,
+    question: "Are you a citizen?",
+    requirement_description: "Only Indian citizens can vote in Indian elections.",
+    rule_key: "citizenship",
+    sequence_order: 2,
+  },
+];
 
-global.fetch = vi.fn()
+function jsonResponse(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
 
-describe('EligibilityChecker', () => {
+const mockFetch = vi.fn();
+global.fetch = mockFetch as unknown as typeof fetch;
+
+describe("EligibilityChecker", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    ;(global.fetch as any).mockResolvedValue({
-      ok: true,
-      json: async () => mockRules
-    })
-  })
+    mockFetch.mockReset();
+    mockFetch.mockImplementation(async (input, init) => {
+      const url = String(input);
 
-  it('renders correctly after fetching rules', async () => {
-    render(<EligibilityChecker />)
-    
-    await waitFor(() => {
-      expect(screen.getByText(/Are you 18\?/i)).toBeDefined()
-      expect(screen.getByText(/Are you a citizen\?/i)).toBeDefined()
-    })
-  })
+      if (url.includes("/api/eligibility/rules")) {
+        return jsonResponse(mockRules);
+      }
 
-  it('shows eligibility result when all questions are answered', async () => {
-    render(<EligibilityChecker />)
-    
-    await waitFor(() => screen.getByText(/Are you 18\?/i))
-    
-    const yesButtons = screen.getAllByText(/Yes/i)
-    fireEvent.click(yesButtons[0])
-    fireEvent.click(yesButtons[1])
-    
-    await waitFor(() => {
-      expect(screen.getByText(/Likely Eligible/i)).toBeDefined()
-    })
-  })
+      if (url.includes("/api/eligibility/check")) {
+        const body = JSON.parse(String(init?.body ?? "{}")) as { answers: Record<string, string> };
+        const eligible = Object.values(body.answers).every((value) => value === "yes");
 
-  it('shows ineligibility status if any answer is No', async () => {
-    render(<EligibilityChecker />)
-    
-    await waitFor(() => screen.getByText(/Are you 18\?/i))
-    
-    const yesButtons = screen.getAllByText(/Yes/i)
-    const noButtons = screen.getAllByText(/No/i)
-    
-    fireEvent.click(yesButtons[0])
-    fireEvent.click(noButtons[1])
-    
+        return jsonResponse({
+          eligible,
+          message: eligible
+            ? "You appear eligible to vote based on the answers provided."
+            : "One or more eligibility requirements were not met.",
+          failed_rules: eligible ? [] : ["Are you a citizen?"],
+        });
+      }
+
+      throw new Error(`Unhandled request: ${url}`);
+    });
+  });
+
+  it("renders rules after fetching them", async () => {
+    render(<EligibilityChecker />);
+
     await waitFor(() => {
-      expect(screen.getByText(/Ineligible Status/i)).toBeDefined()
-    })
-  })
-})
+      expect(screen.getByText(/Are you 18\?/i)).toBeInTheDocument();
+      expect(screen.getByText(/Are you a citizen\?/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows the eligible result when all answers are yes", async () => {
+    render(<EligibilityChecker />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Are you 18\?/i)).toBeInTheDocument();
+    });
+
+    const yesButtons = screen.getAllByRole("button", { name: /^Yes,/i });
+    fireEvent.click(yesButtons[0]);
+    fireEvent.click(yesButtons[1]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Likely Eligible/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows a review state when any answer is no", async () => {
+    render(<EligibilityChecker />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Are you 18\?/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Yes, Are you 18\?/i }));
+    fireEvent.click(screen.getByRole("button", { name: /No, Are you a citizen\?/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Needs Review/i)).toBeInTheDocument();
+      expect(screen.getByText(/Review these answers again/i)).toBeInTheDocument();
+    });
+  });
+});

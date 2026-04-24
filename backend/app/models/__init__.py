@@ -17,6 +17,7 @@ class Source(SQLModel, table=True):
 class Region(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
+    code: str = Field(index=True, min_length=2, max_length=10)
     country: str = Field(default="India")
     description: Optional[str] = None
 

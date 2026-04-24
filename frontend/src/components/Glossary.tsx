@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Book } from 'lucide-react';
-import API_BASE_URL from '../lib/api';
+import { useDeferredValue, useEffect, useState } from "react";
+import { Search } from "lucide-react";
+
+import { useApiResource } from "@/hooks/use-api-resource";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { trackUserAction } from "@/lib/google-services";
 
 interface GlossaryItem {
   term: string;
@@ -11,57 +13,126 @@ interface GlossaryItem {
   category: string;
 }
 
+const emptyGlossaryItems: GlossaryItem[] = [];
+
 export default function Glossary() {
-  const [items, setItems] = useState<GlossaryItem[]>([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search.trim());
+  const debouncedSearch = useDebouncedValue(deferredSearch, 250);
+  const requestPath = debouncedSearch
+    ? `/api/glossary/?search=${encodeURIComponent(debouncedSearch)}`
+    : "/api/glossary/";
+  const { data: items, isLoading, error } = useApiResource<GlossaryItem[]>(
+    `glossary:${debouncedSearch || "all"}`,
+    requestPath,
+    {
+      initialData: emptyGlossaryItems,
+      keepPreviousData: true,
+    },
+  );
 
   useEffect(() => {
-    setLoading(true);
-    const url = search ? `${API_BASE_URL}/api/glossary/?search=${encodeURIComponent(search)}` : `${API_BASE_URL}/api/glossary/`;
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        setItems(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error fetching glossary:", err);
-        setLoading(false);
+    if (debouncedSearch.length >= 2) {
+      void trackUserAction("glossary_search", {
+        query_length: debouncedSearch.length,
+        query_value: debouncedSearch.slice(0, 50),
       });
-  }, [search]);
+    }
+  }, [debouncedSearch]);
 
   return (
     <div className="glossary-clean">
-      <div className="glossary-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
+      <div
+        className="glossary-header"
+        style={{
+          marginBottom: "3rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          gap: "2rem",
+        }}
+      >
         <div>
-          <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Election Glossary</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Clear definitions for key democratic and electoral terms.</p>
+          <h2 style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>Election Glossary</h2>
+          <p style={{ color: "var(--text-secondary)" }}>Clear definitions for key democratic and electoral terms.</p>
         </div>
-        <div className="search-input-wrapper" style={{ position: 'relative', flex: 1, maxWidth: '350px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder="Search terms..." 
+        <div className="search-input-wrapper" style={{ position: "relative", flex: 1, maxWidth: "350px" }}>
+          <label htmlFor="glossary-search" className="sr-only">
+            Search election glossary terms
+          </label>
+          <Search
+            size={18}
+            style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}
+          />
+          <input
+            id="glossary-search"
+            type="text"
+            placeholder="Search terms..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             style={{
-              width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem',
-              borderRadius: '12px', border: '1px solid var(--border-light)',
-              fontSize: '0.95rem', outline: 'none', background: 'white'
+              width: "100%",
+              padding: "0.75rem 1rem 0.75rem 2.75rem",
+              borderRadius: "12px",
+              border: "1px solid var(--border-standard)",
+              fontSize: "0.95rem",
+              outline: "none",
+              background: "white",
             }}
           />
         </div>
       </div>
 
-      <div className="glossary-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-        {items.map((item, i) => (
-          <div key={i} className="glossary-card card-clean" style={{ padding: '1.5rem' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--brand-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', display: 'block' }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+        <p className="status-note">{debouncedSearch ? `${items.length} matching terms found` : `${items.length} glossary terms available`}</p>
+        {isLoading ? <p className="status-note">Refreshing results...</p> : null}
+      </div>
+
+      {error ? (
+        <p className="inline-alert" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {items.length === 0 && !isLoading ? (
+        <p className="empty-state" role="status">
+          No glossary entries matched your search.
+        </p>
+      ) : null}
+
+      <div
+        className="glossary-list"
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}
+      >
+        {items.map((item) => (
+          <div key={`${item.term}-${item.category}`} className="card-premium" style={{ padding: "1.5rem" }}>
+            <span
+              style={{
+                fontSize: "0.8rem",
+                fontWeight: 800,
+                color: "var(--brand-primary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: "1rem",
+                display: "block",
+              }}
+            >
               {item.category}
             </span>
-            <h3 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', borderBottom: '2px solid black', paddingBottom: '0.5rem' }}>{item.term}</h3>
-            <p style={{ fontSize: '1.2rem', color: '#000', fontWeight: 500, lineHeight: 1.5 }}>{item.definition}</p>
+            <h3
+              style={{
+                fontSize: "1.4rem",
+                marginBottom: "1rem",
+                borderBottom: "1px solid var(--border-standard)",
+                paddingBottom: "0.5rem",
+              }}
+            >
+              {item.term}
+            </h3>
+            <p style={{ fontSize: "1rem", color: "var(--text-secondary)", fontWeight: 500, lineHeight: 1.6 }}>
+              {item.definition}
+            </p>
           </div>
         ))}
       </div>
