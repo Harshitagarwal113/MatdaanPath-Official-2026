@@ -100,18 +100,17 @@ _SYSTEM_PROMPT = (
     "Use the following verified context from our database if relevant:\n"
 )
 
+from app.core.logging import get_logger
+logger = get_logger("chat")
+
 @router.post("/", response_model=ChatResponse)
 async def chat(request: ChatRequest, session: Session = Depends(get_session)):
     if _client is None:
         raise HTTPException(
             status_code=503,
-            detail=(
-                "AI service is not configured. Please set GEMINI_API_KEY (starting "
-                "with 'AI') or configure GOOGLE_CLOUD_PROJECT with Vertex AI "
-                "Application Default Credentials."
-            ),
+            detail="AI service not configured."
         )
-
+    logger.info(f"Chat request received: {request.message[:50]}...")
     context = get_context(request.message, session)
     system_instruction = _SYSTEM_PROMPT + context
 
@@ -127,11 +126,12 @@ async def chat(request: ChatRequest, session: Session = Depends(get_session)):
                 max_output_tokens=512,
             ),
         )
+        logger.info("Successfully generated AI response.")
         return ChatResponse(response=response.text)
 
     except Exception as exc:
         error_msg = str(exc)
-        print(f"ChatBot error: {error_msg}")
+        logger.error(f"ChatBot error: {error_msg}")
 
         # Provide a helpful hint in the response rather than a raw stack trace
         if "PERMISSION_DENIED" in error_msg or "403" in error_msg:
