@@ -35,6 +35,7 @@ global.fetch = mockFetch as unknown as typeof fetch;
 describe("EligibilityChecker", () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    window.localStorage.clear();
     mockFetch.mockImplementation(async (input, init) => {
       const url = String(input);
 

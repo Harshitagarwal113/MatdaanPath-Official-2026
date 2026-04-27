@@ -18,6 +18,7 @@ global.fetch = mockFetch as unknown as typeof fetch;
 describe("ChatAssistant", () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    window.localStorage.clear();
   });
 
   it("renders the FAB button initially", () => {
@@ -42,7 +43,13 @@ describe("ChatAssistant", () => {
   });
 
   it("sends a message and renders the AI response", async () => {
-    mockFetch.mockResolvedValue(jsonResponse({ response: "You can register through the official voter portal." }));
+    mockFetch.mockResolvedValue(
+      jsonResponse({
+        response: "You can register through the official voter portal.",
+        sources: [{ name: "Voter Service Portal", url: "https://voters.eci.gov.in", source_type: "portal" }],
+        disclaimer: "This guidance is educational.",
+      }),
+    );
 
     render(<ChatAssistant />);
     fireEvent.click(screen.getByLabelText(/Open Chat Assistant/i));
@@ -55,6 +62,9 @@ describe("ChatAssistant", () => {
     await waitFor(() => {
       expect(screen.getByText(/official voter portal/i)).toBeInTheDocument();
     });
+
+    expect(screen.getByRole("link", { name: /Voter Service Portal/i })).toBeInTheDocument();
+    expect(screen.getByText(/guidance is educational/i)).toBeInTheDocument();
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/chat/"),

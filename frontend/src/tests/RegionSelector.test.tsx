@@ -18,6 +18,7 @@ global.fetch = mockFetch as unknown as typeof fetch;
 describe("RegionSelector", () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    window.localStorage.clear();
     mockFetch.mockResolvedValue(
       jsonResponse([
         { id: 1, name: "India", code: "IN", description: "National election coverage." },

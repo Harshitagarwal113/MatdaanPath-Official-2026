@@ -1,7 +1,22 @@
-from unittest.mock import patch, MagicMock
-from fastapi.testclient import TestClient
+from unittest.mock import MagicMock, patch
 
-def test_chat_endpoint_mocked(client: TestClient):
+from fastapi.testclient import TestClient
+from sqlmodel import Session
+
+from app.models import Source
+
+
+def test_chat_endpoint_mocked(client: TestClient, session: Session):
+    session.add(
+        Source(
+            name="ECI Official Website",
+            url="https://eci.gov.in",
+            source_type="government",
+            status="approved",
+        )
+    )
+    session.commit()
+
     with patch("app.api.chat._client") as mock_client:
         # Mock the Gemini response
         mock_response = MagicMock()
@@ -11,10 +26,30 @@ def test_chat_endpoint_mocked(client: TestClient):
         response = client.post("/api/chat/", json={"message": "How to vote?"})
         
         assert response.status_code == 200
-        assert response.json()["response"] == "Mocked AI Response"
+        payload = response.json()
+        assert payload["response"] == "Mocked AI Response"
+        assert payload["fallback_used"] is False
+        assert len(payload["sources"]) == 1
+        assert payload["sources"][0]["url"] == "https://eci.gov.in"
+        assert "educational" in payload["disclaimer"].lower()
 
-def test_chat_service_not_configured(client: TestClient):
+
+def test_chat_service_not_configured(client: TestClient, session: Session):
+    session.add(
+        Source(
+            name="Voter Service Portal",
+            url="https://voters.eci.gov.in",
+            source_type="portal",
+            status="approved",
+        )
+    )
+    session.commit()
+
     with patch("app.api.chat._client", None):
         response = client.post("/api/chat/", json={"message": "How to vote?"})
-        assert response.status_code == 503
-        assert "not configured" in response.json()["detail"]
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["fallback_used"] is True
+        assert "temporarily unavailable" in payload["response"].lower()
+        assert len(payload["sources"]) == 1
+        assert "live ai" in payload["disclaimer"].lower()
