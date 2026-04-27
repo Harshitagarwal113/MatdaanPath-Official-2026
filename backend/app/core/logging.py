@@ -31,7 +31,7 @@ def setup_logging():
             error_client = error_reporting.Client(project=project_id)
             _error_client = error_client
             
-            logging.info(f"Cloud Logging successfully initialized for project: {project_id}")
+            logging.info("Cloud Logging initialized for project %s", project_id)
             return error_client
         except Exception as e:
             # Ensure we reset to basic logging if anything above fails
@@ -39,7 +39,7 @@ def setup_logging():
                 level=logging.INFO,
                 format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
             )
-            logging.warning(f"Cloud Logging init failed ({e}). Using standard local logging.")
+            logging.warning("Cloud Logging init failed (%s). Using standard local logging.", e)
             return None
     else:
         # Fallback to standard local logging
@@ -61,3 +61,18 @@ def report_exception() -> None:
 
 def get_logger(name: str):
     return logging.getLogger(name)
+
+
+def is_cloud_logging_enabled() -> bool:
+    return _cloud_logging_client is not None
+
+
+def is_error_reporting_enabled() -> bool:
+    return _error_client is not None
+
+
+def get_observability_status() -> dict[str, bool]:
+    return {
+        "cloud_logging_enabled": is_cloud_logging_enabled(),
+        "error_reporting_enabled": is_error_reporting_enabled(),
+    }

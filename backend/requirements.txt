@@ -8,6 +8,9 @@ python-dotenv
 google-genai
 google-cloud-logging
 google-cloud-error-reporting
+google-cloud-secret-manager
+google-cloud-tasks
+firebase-admin
 pytest
 pytest-asyncio
 httpx

@@ -23,7 +23,7 @@ FROM python:3.11-slim
 
 # Install nginx and supervisor
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends nginx supervisor && \
+    apt-get install -y --no-install-recommends nginx supervisor gettext-base && \
     rm -rf /var/lib/apt/lists/*
 
 # ── FastAPI backend ──────────────────────────────────────
@@ -38,14 +38,15 @@ COPY backend/ .
 COPY --from=frontend-builder /frontend/out /usr/share/nginx/html
 
 # ── Config files ─────────────────────────────────────────
-# Replace the default nginx site with our unified config
-COPY nginx.conf /etc/nginx/sites-enabled/default
-RUN rm -f /etc/nginx/sites-enabled/default.conf
+# Keep nginx config as a template; resolve PORT at runtime.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 COPY supervisord.conf /etc/supervisor/conf.d/app.conf
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Cloud Run uses PORT env (default 8080); nginx listens on 8080
 EXPOSE 8080
 
-# Start both nginx and uvicorn via supervisord
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/app.conf"]
+# Render nginx config, run bootstrap once, then start supervisor.
+CMD ["/usr/local/bin/docker-entrypoint.sh"]
