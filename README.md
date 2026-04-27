@@ -1,111 +1,126 @@
-# MatdaanPath
+# 🗳️ MatdaanPath
 
-MatdaanPath is an AI-powered election education platform that helps Indian citizens understand registration, eligibility, deadlines, and official voting process steps.
+[![Deployment](https://img.shields.io/badge/Deploy-Cloud%20Run-blue?logo=google-cloud&logoColor=white)](https://matdaanpath-app-135105451054.asia-south1.run.app)
+[![Framework](https://img.shields.io/badge/Frontend-Next.js%2015-black?logo=next.js)](https://nextjs.org/)
+[![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![AI](https://img.shields.io/badge/AI-Gemini%202.0-orange?logo=google-gemini&logoColor=white)](https://ai.google.dev/)
 
-[Live Demo](https://matdaanpath-app-135105451054.asia-south1.run.app)
+**MatdaanPath** is an AI-powered election education platform designed to empower Indian citizens. It simplifies complex election processes, providing clear information on registration, eligibility, and official voting steps through a modern, intuitive interface.
 
-## Core Features
+🔗 **[Live Demo](https://matdaanpath-app-135105451054.asia-south1.run.app)**
 
-- AI chat assistant grounded with local election context.
-- Election timeline with step-by-step stage walkthrough.
-- Eligibility checker driven by configurable backend rules.
-- Searchable glossary for election terminology.
-- Region-aware deadlines with national fallback.
-- Google integrations: Gemini, Cloud Logging/Error Reporting, Firebase Analytics.
+---
 
-## Architecture
+## ✨ Key Features
 
-```text
-Browser
-  -> Cloud Run (single URL)
-      -> nginx (port 8080)
-          -> /         static Next.js frontend
-          -> /api/*    FastAPI backend on 127.0.0.1:8000
+- 🤖 **AI Chat Assistant**: Context-aware guidance on voting queries, powered by Gemini 2.0.
+- 📅 **Interactive Timeline**: A step-by-step walkthrough of the election lifecycle.
+- ⚖️ **Eligibility Checker**: Instant verification of voting requirements based on real-time backend rules.
+- 📖 **Election Glossary**: A comprehensive database to demystify complex terminology.
+- 📍 **Region-Aware Deadlines**: Stay updated with localized schedules and national fallbacks.
+- 🔔 **Smart Reminders**: Integrated with Google Cloud Tasks for timely notifications.
+
+---
+
+## 🏗️ Architecture
+
+MatdaanPath follows a **Cloud Native** architecture, deployed as a unified container on Google Cloud Run.
+
+```mermaid
+graph TD
+    User([User Browser]) --> Nginx[Nginx Reverse Proxy]
+    subgraph "Cloud Run Container"
+        Nginx -->|Static Assets| NextJS[Next.js Frontend]
+        Nginx -->|/api/*| FastAPI[FastAPI Backend]
+        FastAPI --> SQLite[(SQLite / Cloud SQL)]
+        FastAPI --> Gemini[Gemini AI Engine]
+        FastAPI --> CloudTasks[Google Cloud Tasks]
+    end
 ```
 
-## Tech Stack
+---
 
-- Frontend: Next.js 16, TypeScript, Framer Motion
-- Backend: FastAPI, SQLModel, Alembic
-- AI: Gemini (`google-genai`)
-- Observability: Google Cloud Logging + Error Reporting
-- Testing: Pytest, Vitest, React Testing Library
-- Deployment: Google Cloud Run
+## 🛠️ Tech Stack
 
-## Local Development
+### Frontend
+- **Framework**: Next.js 15 (App Router)
+- **Styling**: Vanilla CSS with modern Glassmorphism effects
+- **Animations**: Framer Motion
+- **Language**: TypeScript
 
-### One-command local run (recommended)
+### Backend
+- **Core**: FastAPI
+- **Data Access**: SQLModel (SQLAlchemy + Pydantic)
+- **Migrations**: Alembic
+- **Task Queue**: Google Cloud Tasks
+
+### Infrastructure & DevOps
+- **Cloud**: Google Cloud Platform (GCP)
+- **Deployment**: Cloud Run
+- **Observability**: Cloud Logging & Error Reporting
+- **Secrets**: Google Secret Manager
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 20+
+- Python 3.11+
+- Google Cloud SDK (for deployment/cloud features)
+
+### Quick Start (Local Development)
+The easiest way to get started is using the provided PowerShell scripts in the `tools/` directory.
 
 ```powershell
+# Initialize and start both Frontend & Backend
 .\tools\start-local.ps1
-```
 
-This script:
-- runs migrations + seed
-- starts backend on `http://localhost:8000`
-- starts frontend on `http://localhost:3000`
-- auto-falls back to static frontend when local policy blocks Next.js worker spawn (`spawn EPERM`)
-
-To stop both processes:
-
-```powershell
+# To stop all services
 .\tools\stop-local.ps1
 ```
 
-Or run in one interactive terminal session that stays alive:
+### Manual Setup
 
-```powershell
-.\tools\run-local.ps1
-```
+#### Backend
+1. `cd backend`
+2. `python -m venv venv && .\venv\Scripts\activate`
+3. `pip install -r requirements.txt`
+4. `alembic upgrade head`
+5. `python scripts/seed_data.py`
+6. `uvicorn app.main:app --reload --port 8000`
 
-### Backend
+#### Frontend
+1. `cd frontend`
+2. `npm install`
+3. `npm run dev` (Frontend runs on `http://localhost:3000`)
 
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-alembic upgrade head
-python scripts/seed_data.py
-uvicorn app.main:app --reload --port 8000
-```
+---
 
-### Frontend
+## 📝 Environment Variables
 
-```bash
-cd frontend
-npm install
-echo NEXT_PUBLIC_API_URL=http://localhost:8000 > .env.local
-npm run dev
-```
+### Backend (`.env`)
+| Variable | Description |
+| :--- | :--- |
+| `GEMINI_API_KEY` | Your Google AI API Key |
+| `GOOGLE_CLOUD_PROJECT` | GCP Project ID |
+| `DATABASE_URL` | Connection string (Default: `sqlite:///./matdaanpath.db`) |
+| `ADMIN_API_TOKEN` | Secure token for administrative operations |
 
-## Environment Variables (Backend)
+---
 
-| Variable | Purpose |
-|---|---|
-| `GEMINI_API_KEY` | Gemini API key (recommended for chat) |
-| `GOOGLE_CLOUD_PROJECT` | Enables Vertex fallback and Cloud observability |
-| `GOOGLE_CLOUD_LOCATION` | Vertex location, default `asia-south1` |
-| `GEMINI_MODEL_ID` | Gemini model override, default `gemini-2.0-flash-lite` |
-| `DATABASE_URL` | SQLite or PostgreSQL connection string |
-| `CORS_ALLOW_ORIGINS` | Comma-separated allowed frontend origins |
-| `DB_POOL_SIZE` | PostgreSQL base pool size |
-| `DB_MAX_OVERFLOW` | PostgreSQL pool overflow limit |
-| `RUN_DB_MIGRATIONS_ON_STARTUP` | Runs Alembic migration during container boot |
-| `RUN_DB_SEED_ON_STARTUP` | Seeds baseline data during container boot |
+## 🛡️ API Diagnostics
 
-## API Diagnostics
+- `GET /health`: Basic liveness check.
+- `GET /health/detailed`: Deep health check (DB, counts, observability).
+- `GET /api/google-services/status`: Runtime status of Gemini and Cloud integrations.
 
-- `GET /health` basic liveness check
-- `GET /health/detailed` database connectivity + table counts + observability status
-- `GET /api/google-services/status` Gemini and Google runtime integration status
+---
 
-## Deployment Notes
+## 🤝 Contributing
 
-The production container runs:
-1. `alembic upgrade head`
-2. `python scripts/bootstrap.py` (seed/migration orchestration)
-3. FastAPI + nginx via `supervisord`
+Contributions are welcome! Please feel free to submit a Pull Request or open an issue for feature requests.
 
-This ensures fresh instances come up with migrated and seeded data.
+---
+
+Developed with ❤️ by [Harshit Agarwal](https://github.com/Harshitagarwal113)
