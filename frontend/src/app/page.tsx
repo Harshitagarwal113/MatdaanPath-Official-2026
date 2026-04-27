@@ -19,12 +19,13 @@ import EligibilityChecker from "@/components/EligibilityChecker";
 import Glossary from "@/components/Glossary";
 import GoogleServicesPanel from "@/components/GoogleServicesPanel";
 import ImportantDates from "@/components/ImportantDates";
+import OpsConsole from "@/components/OpsConsole";
 import RegionSelector from "@/components/RegionSelector";
 import Timeline from "@/components/Timeline";
 import { requestChatOpen } from "@/lib/chat-events";
 import { trackOutboundLink, trackUserAction } from "@/lib/google-services";
 
-type TabId = "timeline" | "eligibility" | "glossary";
+type TabId = "timeline" | "eligibility" | "glossary" | "operations";
 
 type NavigationItem = {
   id: TabId;
@@ -41,6 +42,7 @@ const navigation: NavigationItem[] = [
   { id: "timeline", label: "Timeline", icon: Calendar },
   { id: "eligibility", label: "Eligibility", icon: CheckSquare },
   { id: "glossary", label: "Glossary", icon: BookOpen },
+  { id: "operations", label: "Operations", icon: Zap },
 ];
 
 const officialLinks: OfficialLink[] = [
@@ -54,13 +56,31 @@ const heroHighlights = [
   "Region-specific deadlines with national fallback",
   "Google-powered analytics and observability hooks",
 ];
+const TAB_STORAGE_KEY = "matdaanpath:active-tab:v1";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabId>("timeline");
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (typeof window === "undefined") {
+      return "timeline";
+    }
+
+    const storedTab = window.localStorage.getItem(TAB_STORAGE_KEY);
+    return storedTab === "timeline" || storedTab === "eligibility" || storedTab === "glossary" || storedTab === "operations"
+      ? storedTab
+      : "timeline";
+  });
   const [selectedRegion, setSelectedRegion] = useState<number | null>(null);
 
   useEffect(() => {
     void trackUserAction("feature_tab_view", { tab_name: activeTab });
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(TAB_STORAGE_KEY, activeTab);
   }, [activeTab]);
 
   function handleOfficialLinkClick(link: OfficialLink) {
@@ -273,6 +293,7 @@ export default function Home() {
                     {activeTab === "timeline" && <Timeline />}
                     {activeTab === "eligibility" && <EligibilityChecker />}
                     {activeTab === "glossary" && <Glossary />}
+                    {activeTab === "operations" && <OpsConsole />}
                   </motion.div>
                 </AnimatePresence>
               </div>

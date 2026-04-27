@@ -31,6 +31,22 @@ async function readErrorMessage(response: Response): Promise<string> {
   return `Request failed with status ${response.status}.`;
 }
 
+function withTimeout(signal: AbortSignal | null | undefined, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+
+  const abortOnParentSignal = () => controller.abort();
+  signal?.addEventListener("abort", abortOnParentSignal, { once: true });
+
+  return {
+    signal: controller.signal,
+    cleanup() {
+      globalThis.clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", abortOnParentSignal);
+    },
+  };
+}
+
 export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set("Accept", "application/json");
@@ -39,10 +55,23 @@ export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T>
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(resolveUrl(path), {
-    ...init,
-    headers,
-  });
+  const timeoutContext = withTimeout(init?.signal, 10_000);
+  let response: Response;
+
+  try {
+    response = await fetch(resolveUrl(path), {
+      ...init,
+      signal: timeoutContext.signal,
+      headers,
+    });
+  } catch (error) {
+    if (timeoutContext.signal.aborted) {
+      throw new FetchError("The request timed out. Please try again.", 408);
+    }
+    throw error;
+  } finally {
+    timeoutContext.cleanup();
+  }
 
   if (!response.ok) {
     throw new FetchError(await readErrorMessage(response), response.status);

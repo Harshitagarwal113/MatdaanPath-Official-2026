@@ -7,7 +7,47 @@ import {
   type Analytics,
 } from "firebase/analytics";
 
+import { fetchJson } from "@/lib/fetch-json";
+
 type AnalyticsParams = Record<string, string | number | boolean | null | undefined>;
+
+export type GoogleServicesStatus = {
+  google_cloud_project: string | null;
+  cloud_run_service: string | null;
+  cloud_run_revision: string | null;
+  observability: {
+    cloud_logging_enabled: boolean;
+    error_reporting_enabled: boolean;
+  };
+  gemini: {
+    gemini_enabled: boolean;
+    provider: string;
+    model: string;
+    vertex_project_configured: boolean;
+    vertex_location: string;
+    secret_manager_enabled?: boolean;
+  };
+  firebase_auth: {
+    enabled: boolean;
+    project_id_configured: boolean;
+  };
+  cloud_tasks: {
+    enabled: boolean;
+    queue_id: string;
+    target_url_configured: boolean;
+    verification_token_configured?: boolean;
+    local_fallback_queue_size: number;
+  };
+  secret_manager: {
+    enabled: boolean;
+    gemini_secret_configured: boolean;
+  };
+  admin_auth: {
+    configured: boolean;
+    allow_insecure_admin: boolean;
+  };
+  updated_at: string;
+};
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -59,6 +99,10 @@ async function getClientAnalytics(): Promise<Analytics | null> {
 
 export function isGoogleServicesConfigured(): boolean {
   return hasFirebaseConfig();
+}
+
+export async function fetchGoogleServicesStatus(): Promise<GoogleServicesStatus> {
+  return fetchJson<GoogleServicesStatus>("/api/google-services/status");
 }
 
 export async function trackUserAction(actionName: string, params?: AnalyticsParams): Promise<void> {

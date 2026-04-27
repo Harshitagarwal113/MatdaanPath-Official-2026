@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { fetchJson } from "@/lib/fetch-json";
 
@@ -10,7 +10,23 @@ type UseApiResourceOptions<T> = {
   keepPreviousData?: boolean;
 };
 
-const resourceCache = new Map<string, unknown>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const resourceCache = new Map<string, { value: unknown; cachedAt: number }>();
+
+function getCachedResource<T>(requestKey: string): T | undefined {
+  const cachedEntry = resourceCache.get(requestKey);
+  if (!cachedEntry) {
+    return undefined;
+  }
+
+  const isExpired = Date.now() - cachedEntry.cachedAt > CACHE_TTL_MS;
+  if (isExpired) {
+    resourceCache.delete(requestKey);
+    return undefined;
+  }
+
+  return cachedEntry.value as T;
+}
 
 export function useApiResource<T>(
   requestKey: string,
@@ -21,10 +37,12 @@ export function useApiResource<T>(
     keepPreviousData = false,
   }: UseApiResourceOptions<T>,
 ) {
-  const hasCachedValue = enabled && resourceCache.has(requestKey);
+  const cachedValue = enabled ? getCachedResource<T>(requestKey) : undefined;
+  const hasCachedValue = cachedValue !== undefined;
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const [data, setData] = useState<T>(() =>
-    hasCachedValue ? (resourceCache.get(requestKey) as T) : initialData,
+    hasCachedValue ? cachedValue : initialData,
   );
   const [isLoading, setIsLoading] = useState(enabled && !hasCachedValue);
   const [error, setError] = useState<string | null>(null);
@@ -38,9 +56,9 @@ export function useApiResource<T>(
     let isActive = true;
 
     async function loadResource() {
-      const cachedValue = resourceCache.get(requestKey) as T | undefined;
-      if (cachedValue !== undefined) {
-        setData(cachedValue);
+      const latestCachedValue = getCachedResource<T>(requestKey);
+      if (latestCachedValue !== undefined) {
+        setData(latestCachedValue);
         setError(null);
         setIsLoading(false);
         return;
@@ -62,7 +80,10 @@ export function useApiResource<T>(
           return;
         }
 
-        resourceCache.set(requestKey, response);
+        resourceCache.set(requestKey, {
+          value: response,
+          cachedAt: Date.now(),
+        });
         setData(response);
       } catch (loadError) {
         if (!isActive || controller.signal.aborted) {
@@ -92,11 +113,22 @@ export function useApiResource<T>(
       isActive = false;
       controller.abort();
     };
-  }, [enabled, initialData, keepPreviousData, path, requestKey]);
+  }, [enabled, initialData, keepPreviousData, path, requestKey, refreshToken]);
+
+  const refresh = useCallback(
+    (force = true) => {
+      if (force) {
+        resourceCache.delete(requestKey);
+      }
+      setRefreshToken((currentValue) => currentValue + 1);
+    },
+    [requestKey],
+  );
 
   return {
     data,
     isLoading,
     error,
+    refresh,
   };
 }

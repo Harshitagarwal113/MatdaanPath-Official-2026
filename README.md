@@ -1,73 +1,73 @@
-# 🗳️ MatdaanPath — AI-Powered Election Education Assistant
+# MatdaanPath
 
-> **Empowering every Indian citizen to participate in democracy with confidence.**
+MatdaanPath is an AI-powered election education platform that helps Indian citizens understand registration, eligibility, deadlines, and official voting process steps.
 
-MatdaanPath (मतदान पथ — *The Path to Voting*) is an AI-driven web application that guides users through the Indian election process in a simple, trustworthy, and accessible way.
+[Live Demo](https://matdaanpath-app-135105451054.asia-south1.run.app)
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Cloud%20Run-blue?style=for-the-badge&logo=google-cloud)](https://matdaanpath-app-135105451054.asia-south1.run.app)
+## Core Features
 
----
+- AI chat assistant grounded with local election context.
+- Election timeline with step-by-step stage walkthrough.
+- Eligibility checker driven by configurable backend rules.
+- Searchable glossary for election terminology.
+- Region-aware deadlines with national fallback.
+- Google integrations: Gemini, Cloud Logging/Error Reporting, Firebase Analytics.
 
-## ✨ Features
+## Architecture
 
-| Feature | Description |
-|---|---|
-| 🤖 **AI Chat Assistant** | Ask anything about Indian elections — powered by Gemini AI |
-| 🗓️ **Election Timeline** | Step-by-step interactive election process visualization |
-| ✅ **Eligibility Checker** | Find out if you're eligible to vote in seconds |
-| 📖 **Glossary** | Searchable dictionary of election terms (EVM, VVPAT, Form 6, etc.) |
-| 📅 **Important Dates** | Critical deadlines filtered by your region |
-| 🧪 **90%+ Test Coverage** | Robust testing suite for both frontend (Vitest) and backend (Pytest) |
-| 📊 **GCP Integration** | Full Google Cloud Logging, Error Reporting, and Analytics |
-
----
-
-## 🏗️ Architecture
-
-```
+```text
 Browser
-  └── Cloud Run (Single URL)
-        └── nginx (port 8080)
-             ├── /        → Next.js static frontend
-             └── /api/*   → FastAPI backend (uvicorn on 127.0.0.1:8000)
+  -> Cloud Run (single URL)
+      -> nginx (port 8080)
+          -> /         static Next.js frontend
+          -> /api/*    FastAPI backend on 127.0.0.1:8000
 ```
 
-**Stack:**
-- **Frontend:** Next.js 16 + TypeScript + Framer Motion (Animations)
-- **Backend:** FastAPI + SQLModel + Alembic
-- **AI:** Google Gemini 2.0 Flash Lite via `google-genai` SDK
-- **Google Services:** Cloud Logging, Error Reporting, Firebase Analytics
-- **Testing:** Pytest (Backend), Vitest + React Testing Library (Frontend)
-- **Deployment:** Google Cloud Run, Firebase Hosting
+## Tech Stack
 
----
+- Frontend: Next.js 16, TypeScript, Framer Motion
+- Backend: FastAPI, SQLModel, Alembic
+- AI: Gemini (`google-genai`)
+- Observability: Google Cloud Logging + Error Reporting
+- Testing: Pytest, Vitest, React Testing Library
+- Deployment: Google Cloud Run
 
-## 🚀 Quick Start
+## Local Development
 
-### Prerequisites
-- Python 3.11+
-- Node.js 20+
-- A [Gemini API key](https://aistudio.google.com/app/apikey) (starts with `AI`)
+### One-command local run (recommended)
+
+```powershell
+.\tools\start-local.ps1
+```
+
+This script:
+- runs migrations + seed
+- starts backend on `http://localhost:8000`
+- starts frontend on `http://localhost:3000`
+- auto-falls back to static frontend when local policy blocks Next.js worker spawn (`spawn EPERM`)
+
+To stop both processes:
+
+```powershell
+.\tools\stop-local.ps1
+```
+
+Or run in one interactive terminal session that stays alive:
+
+```powershell
+.\tools\run-local.ps1
+```
 
 ### Backend
 
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate  # Windows
+venv\Scripts\activate
 pip install -r requirements.txt
-
-# Create .env from example
 copy .env.example .env
-# Edit .env and add your GEMINI_API_KEY
-
-# Run migrations
 alembic upgrade head
-
-# Seed the database
 python scripts/seed_data.py
-
-# Start the server
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -76,74 +76,36 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 cd frontend
 npm install
-
-# For local dev (pointing to local backend)
 echo NEXT_PUBLIC_API_URL=http://localhost:8000 > .env.local
-
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+## Environment Variables (Backend)
 
----
+| Variable | Purpose |
+|---|---|
+| `GEMINI_API_KEY` | Gemini API key (recommended for chat) |
+| `GOOGLE_CLOUD_PROJECT` | Enables Vertex fallback and Cloud observability |
+| `GOOGLE_CLOUD_LOCATION` | Vertex location, default `asia-south1` |
+| `GEMINI_MODEL_ID` | Gemini model override, default `gemini-2.0-flash-lite` |
+| `DATABASE_URL` | SQLite or PostgreSQL connection string |
+| `CORS_ALLOW_ORIGINS` | Comma-separated allowed frontend origins |
+| `DB_POOL_SIZE` | PostgreSQL base pool size |
+| `DB_MAX_OVERFLOW` | PostgreSQL pool overflow limit |
+| `RUN_DB_MIGRATIONS_ON_STARTUP` | Runs Alembic migration during container boot |
+| `RUN_DB_SEED_ON_STARTUP` | Seeds baseline data during container boot |
 
-## 🐳 Deploy to Cloud Run (Unified)
+## API Diagnostics
 
-```bash
-gcloud run deploy matdaanpath-app \
-  --source . \
-  --region asia-south1 \
-  --allow-unauthenticated \
-  --set-env-vars "GEMINI_API_KEY=your_key,DATABASE_URL=sqlite:///./matdaanpath.db"
-```
+- `GET /health` basic liveness check
+- `GET /health/detailed` database connectivity + table counts + observability status
+- `GET /api/google-services/status` Gemini and Google runtime integration status
 
----
+## Deployment Notes
 
-## 📁 Project Structure
+The production container runs:
+1. `alembic upgrade head`
+2. `python scripts/bootstrap.py` (seed/migration orchestration)
+3. FastAPI + nginx via `supervisord`
 
-```
-MatdaanPath/
-├── Dockerfile              # Unified multi-stage build
-├── nginx.conf              # Reverse proxy config
-├── supervisord.conf        # Process manager (nginx + uvicorn)
-├── backend/
-│   ├── app/
-│   │   ├── api/            # FastAPI route handlers
-│   │   ├── core/           # Database config
-│   │   └── models/         # SQLModel ORM models
-│   ├── alembic/            # Database migrations
-│   └── scripts/            # DB seed scripts
-├── frontend/
-│   └── src/
-│       ├── app/            # Next.js app router
-│       ├── components/     # React UI components
-│       └── lib/            # Shared utilities (API config)
-└── Planning/               # Architecture & planning docs
-```
-
----
-
-## 🔑 Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `GEMINI_API_KEY` | ✅ | Gemini API key from AI Studio (starts with `AI`) |
-| `DATABASE_URL` | ✅ | SQLite or PostgreSQL connection string |
-| `GOOGLE_CLOUD_PROJECT` | Optional | GCP project ID for Vertex AI fallback |
-| `GOOGLE_CLOUD_LOCATION` | Optional | GCP region (default: `asia-south1`) |
-
----
-
-## 🧠 AI Chatbot Notes
-
-The chatbot uses **Gemini 2.0 Flash Lite** with a free-tier API key. The free tier allows:
-- 15 requests/minute
-- 1,500 requests/day
-
-The assistant enriches responses with verified context from the database (glossary terms, election stages) for accurate, grounded answers.
-
----
-
-## 📜 License
-
-MIT License — Built for the Google Cloud + AI Hackathon 2026.
+This ensures fresh instances come up with migrated and seeded data.

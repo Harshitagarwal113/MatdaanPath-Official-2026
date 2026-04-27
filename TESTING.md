@@ -1,32 +1,40 @@
-# Testing Guide for MatdaanPath
+# MatdaanPath Testing Guide
 
-This project includes a comprehensive testing suite to ensure reliability and performance.
+## Backend (Pytest)
 
-## Backend Tests (Pytest)
-
-The backend tests cover API endpoints, database models, and AI chat integration (mocked).
-
-### Run Backend Tests:
 ```bash
 cd backend
-# Ensure virtual environment is active
-pip install -r requirements.txt
-$env:PYTHONPATH="."  # Windows (PowerShell)
-pytest tests/
+venv\Scripts\activate
+python -m pytest -q
 ```
 
-## Frontend Tests (Vitest)
+Coverage includes:
+- API contract and edge-case handling
+- Chat service behavior (mocked/unconfigured paths)
+- Deadlines/region filtering logic
+- Detailed health endpoint and cache-control behavior
 
-The frontend tests verify component rendering, user interactions, and accessibility attributes.
+## Frontend (Lint + Unit Tests + Type Check)
 
-### Run Frontend Tests:
 ```bash
 cd frontend
-npm install
-npm test
+npm run lint
+npm test -- --run
+node .\node_modules\typescript\bin\tsc --noEmit
 ```
 
-## Coverage Goals
-- **Backend:** 90%+ endpoint coverage.
-- **Frontend:** Core interactive components (Chat, Timeline, Eligibility).
-- **Accessibility:** 100% ARIA label and role validation in tests.
+Coverage includes:
+- Chat widget interactions
+- Eligibility checker flow
+- Region selector behavior
+- Google services runtime panel rendering
+
+## Manual Verification
+
+After deploying, verify:
+
+- `/api/timeline/` returns stage data.
+- `/api/glossary/` returns glossary entries.
+- `/api/deadlines/` returns deadline rows.
+- `/api/eligibility/rules` returns configured questions.
+- `/health/detailed` reports `database_connected: true`.
