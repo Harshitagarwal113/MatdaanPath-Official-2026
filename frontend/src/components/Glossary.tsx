@@ -22,7 +22,7 @@ export default function Glossary() {
   const requestPath = debouncedSearch
     ? `/api/glossary/?search=${encodeURIComponent(debouncedSearch)}`
     : "/api/glossary/";
-  const { data: items, isLoading, error } = useApiResource<GlossaryItem[]>(
+  const { data: items, isLoading, error, refresh } = useApiResource<GlossaryItem[]>(
     `glossary:${debouncedSearch || "all"}`,
     requestPath,
     {
@@ -90,9 +90,12 @@ export default function Glossary() {
       </div>
 
       {error ? (
-        <p className="inline-alert" role="alert">
-          {error}
-        </p>
+        <div className="inline-alert" role="alert" style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+          <span>{error}</span>
+          <button type="button" className="btn-premium" onClick={() => refresh()} style={{ padding: "0.4rem 0.9rem" }}>
+            Retry
+          </button>
+        </div>
       ) : null}
 
       {items.length === 0 && !isLoading ? (

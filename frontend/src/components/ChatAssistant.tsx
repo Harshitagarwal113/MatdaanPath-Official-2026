@@ -9,27 +9,88 @@ import { OPEN_CHAT_EVENT } from "@/lib/chat-events";
 import { fetchJson } from "@/lib/fetch-json";
 import { trackUserAction } from "@/lib/google-services";
 
+interface ChatSource {
+  name: string;
+  url: string;
+  source_type: string;
+  last_verified_at?: string | null;
+}
+
 interface Message {
   text: string;
   sender: "user" | "bot";
   timestamp: Date;
+  sources?: ChatSource[];
+  disclaimer?: string;
 }
 
 interface ChatReply {
   response: string;
+  sources?: ChatSource[];
+  disclaimer?: string;
+  fallback_used?: boolean;
+}
+
+interface PersistedMessage {
+  text: string;
+  sender: "user" | "bot";
+  timestamp: string;
+  sources?: ChatSource[];
+  disclaimer?: string;
 }
 
 const quickActions = ["How do I register to vote?", "Where can I find my polling station?", "What documents do I need?"];
+const CHAT_MESSAGES_STORAGE_KEY = "matdaanpath:chat-messages:v1";
+const MAX_SAVED_MESSAGES = 30;
+
+function createWelcomeMessage(): Message {
+  return {
+    text: "Namaste! I'm your election assistant. Ask about registration, deadlines, or voting rules and I'll help.",
+    sender: "bot",
+    timestamp: new Date(),
+  };
+}
+
+function getInitialMessages(): Message[] {
+  if (typeof window === "undefined") {
+    return [createWelcomeMessage()];
+  }
+
+  const rawMessages = window.localStorage.getItem(CHAT_MESSAGES_STORAGE_KEY);
+  if (!rawMessages) {
+    return [createWelcomeMessage()];
+  }
+
+  try {
+    const parsedMessages = JSON.parse(rawMessages) as PersistedMessage[];
+    if (!Array.isArray(parsedMessages) || parsedMessages.length === 0) {
+      return [createWelcomeMessage()];
+    }
+
+    const hydratedMessages = parsedMessages
+      .filter(
+        (message) =>
+          message &&
+          typeof message.text === "string" &&
+          typeof message.timestamp === "string" &&
+          (message.sender === "user" || message.sender === "bot"),
+      )
+      .map((message) => ({
+        ...message,
+        timestamp: new Date(message.timestamp),
+      }))
+      .filter((message) => !Number.isNaN(message.timestamp.getTime()));
+
+    return hydratedMessages.length > 0 ? hydratedMessages : [createWelcomeMessage()];
+  } catch {
+    window.localStorage.removeItem(CHAT_MESSAGES_STORAGE_KEY);
+    return [createWelcomeMessage()];
+  }
+}
 
 export default function ChatAssistant() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      text: "Namaste! I’m your election assistant. Ask about registration, deadlines, or voting rules and I’ll help.",
-      sender: "bot",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => getInitialMessages());
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -52,6 +113,21 @@ export default function ChatAssistant() {
       window.removeEventListener(OPEN_CHAT_EVENT, handleOpenChat);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const messagesSnapshot: PersistedMessage[] = messages.slice(-MAX_SAVED_MESSAGES).map((message) => ({
+      text: message.text,
+      sender: message.sender,
+      timestamp: message.timestamp.toISOString(),
+      sources: message.sources,
+      disclaimer: message.disclaimer,
+    }));
+    window.localStorage.setItem(CHAT_MESSAGES_STORAGE_KEY, JSON.stringify(messagesSnapshot));
+  }, [messages]);
 
   async function handleSend(customText?: string) {
     const messageText = (customText ?? input).trim();
@@ -83,7 +159,13 @@ export default function ChatAssistant() {
 
       setMessages((currentMessages) => [
         ...currentMessages,
-        { text: data.response, sender: "bot", timestamp: new Date() },
+        {
+          text: data.response,
+          sender: "bot",
+          timestamp: new Date(),
+          sources: data.sources,
+          disclaimer: data.disclaimer,
+        },
       ]);
     } catch (requestError) {
       const errorMessage =
@@ -92,7 +174,7 @@ export default function ChatAssistant() {
       setMessages((currentMessages) => [
         ...currentMessages,
         {
-          text: `I’m having trouble reaching the assistant right now. ${errorMessage}`,
+          text: `I'm having trouble reaching the assistant right now. ${errorMessage}`,
           sender: "bot",
           timestamp: new Date(),
         },
@@ -165,6 +247,26 @@ export default function ChatAssistant() {
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <div className="msg-bubble">{message.text}</div>
+                  {message.sender === "bot" && ((message.sources?.length ?? 0) > 0 || message.disclaimer) ? (
+                    <div className="msg-supporting-info">
+                      {message.sources && message.sources.length > 0 ? (
+                        <div className="msg-source-list" aria-label="Source citations">
+                          {message.sources.map((source) => (
+                            <a
+                              key={`${source.name}-${source.url}`}
+                              href={source.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="msg-source-link"
+                            >
+                              {source.name}
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
+                      {message.disclaimer ? <p className="msg-disclaimer">{message.disclaimer}</p> : null}
+                    </div>
+                  ) : null}
                   <span className="msg-time">
                     {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>

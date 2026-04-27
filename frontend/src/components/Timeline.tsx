@@ -17,7 +17,7 @@ const emptyStages: Stage[] = [];
 
 export default function Timeline() {
   const [selectedStep, setSelectedStep] = useState(0);
-  const { data: stages, isLoading, error } = useApiResource<Stage[]>("timeline:default", "/api/timeline/", {
+  const { data: stages, isLoading, error, refresh } = useApiResource<Stage[]>("timeline:default", "/api/timeline/", {
     initialData: emptyStages,
   });
 
@@ -39,9 +39,12 @@ export default function Timeline() {
       </div>
 
       {error ? (
-        <p className="inline-alert" role="alert">
-          {error}
-        </p>
+        <div className="inline-alert" role="alert" style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+          <span>{error}</span>
+          <button type="button" className="btn-premium" onClick={() => refresh()} style={{ padding: "0.4rem 0.9rem" }}>
+            Retry
+          </button>
+        </div>
       ) : null}
 
       {isLoading && stages.length === 0 ? (

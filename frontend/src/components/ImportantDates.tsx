@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Bell } from "lucide-react";
 
 import { useApiResource } from "@/hooks/use-api-resource";
+import { fetchJson } from "@/lib/fetch-json";
+import { trackUserAction } from "@/lib/google-services";
 
 interface Deadline {
   id: number;
@@ -11,19 +14,63 @@ interface Deadline {
   description?: string | null;
 }
 
+interface ReminderResponse {
+  queued: boolean;
+  provider: string;
+  task_name: string;
+  scheduled_for: string;
+}
+
 const emptyDeadlines: Deadline[] = [];
 const deadlineDateFormatter = new Intl.DateTimeFormat("en-IN", {
   day: "numeric",
   month: "short",
   year: "numeric",
 });
+const REMINDER_EMAIL_STORAGE_KEY = "matdaanpath:reminder-email:v1";
 
 export default function ImportantDates({ regionId }: { regionId: number | null }) {
   const requestKey = `deadlines:${regionId ?? "all"}`;
   const requestPath = regionId ? `/api/deadlines/?region_id=${regionId}` : "/api/deadlines/";
-  const { data: deadlines, isLoading, error } = useApiResource<Deadline[]>(requestKey, requestPath, {
+  const { data: deadlines, isLoading, error, refresh } = useApiResource<Deadline[]>(requestKey, requestPath, {
     initialData: emptyDeadlines,
   });
+  const [reminderStateByDeadline, setReminderStateByDeadline] = useState<Record<number, string>>({});
+
+  async function handleReminder(deadline: Deadline) {
+    const cachedEmail = typeof window !== "undefined" ? window.localStorage.getItem(REMINDER_EMAIL_STORAGE_KEY) : "";
+    const email = window.prompt("Enter your email to receive a reminder", cachedEmail || "");
+    if (!email) {
+      return;
+    }
+
+    setReminderStateByDeadline((current) => ({ ...current, [deadline.id]: "Scheduling reminder..." }));
+    try {
+      const response = await fetchJson<ReminderResponse>("/api/reminders/subscribe", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email.trim(),
+          deadline_name: deadline.name,
+          deadline_date: deadline.date,
+        }),
+      });
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(REMINDER_EMAIL_STORAGE_KEY, email.trim());
+      }
+      setReminderStateByDeadline((current) => ({
+        ...current,
+        [deadline.id]: response.provider === "cloud_tasks" ? "Reminder scheduled" : "Reminder saved (local fallback)",
+      }));
+      void trackUserAction("deadline_reminder_scheduled", {
+        provider: response.provider,
+        deadline_name: deadline.name,
+      });
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Could not schedule reminder.";
+      setReminderStateByDeadline((current) => ({ ...current, [deadline.id]: message }));
+    }
+  }
 
   return (
     <div className="dates-clean">
@@ -35,9 +82,12 @@ export default function ImportantDates({ regionId }: { regionId: number | null }
       </p>
 
       {error ? (
-        <p className="inline-alert" role="alert">
-          {error}
-        </p>
+        <div className="inline-alert" role="alert" style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+          <span>{error}</span>
+          <button type="button" className="btn-premium" onClick={() => refresh()} style={{ padding: "0.35rem 0.8rem" }}>
+            Retry
+          </button>
+        </div>
       ) : null}
 
       {isLoading && deadlines.length === 0 ? (
@@ -92,6 +142,19 @@ export default function ImportantDates({ regionId }: { regionId: number | null }
                       {deadline.description}
                     </div>
                   ) : null}
+                  <div style={{ marginTop: "0.45rem", display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="btn-premium"
+                      style={{ padding: "0.25rem 0.65rem", fontSize: "0.75rem" }}
+                      onClick={() => void handleReminder(deadline)}
+                    >
+                      Set reminder
+                    </button>
+                    {reminderStateByDeadline[deadline.id] ? (
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{reminderStateByDeadline[deadline.id]}</span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             );

@@ -167,6 +167,39 @@
   font-weight: 500;
 }
 
+.msg-supporting-info {
+  margin-top: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-width: 100%;
+}
+
+.msg-source-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.msg-source-link {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  text-decoration: none;
+  padding: 0.2rem 0.5rem;
+  max-width: 100%;
+}
+
+.msg-disclaimer {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 .chat-footer-premium {
   padding: 1.5rem 2rem;
   background: white;

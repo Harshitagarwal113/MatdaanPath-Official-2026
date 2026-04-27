@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { useApiResource } from "@/hooks/use-api-resource";
@@ -14,14 +14,42 @@ interface Region {
 }
 
 const emptyRegions: Region[] = [];
+const REGION_STORAGE_KEY = "matdaanpath:selected-region-id:v1";
+
+function getInitialSelectedRegionId(): number | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawSelection = window.localStorage.getItem(REGION_STORAGE_KEY);
+  if (!rawSelection) {
+    return null;
+  }
+
+  const parsedSelection = Number(rawSelection);
+  return Number.isFinite(parsedSelection) && parsedSelection > 0 ? parsedSelection : null;
+}
 
 export default function RegionSelector({ onRegionChange }: { onRegionChange: (id: number | null) => void }) {
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const { data: regions, isLoading, error } = useApiResource<Region[]>("deadlines:regions", "/api/deadlines/regions", {
+  const [selectedId, setSelectedId] = useState<number | null>(() => getInitialSelectedRegionId());
+  const { data: regions, isLoading, error, refresh } = useApiResource<Region[]>("deadlines:regions", "/api/deadlines/regions", {
     initialData: emptyRegions,
   });
 
-  const selectedRegion = regions.find((region) => region.id === selectedId) ?? null;
+  const hasValidSelectedRegion = selectedId !== null && regions.some((region) => region.id === selectedId);
+  const effectiveSelectedId = hasValidSelectedRegion ? selectedId : null;
+  const selectedRegion = regions.find((region) => region.id === effectiveSelectedId) ?? null;
+
+  useEffect(() => {
+    if (selectedId !== null && !hasValidSelectedRegion && isLoading) {
+      return;
+    }
+
+    onRegionChange(effectiveSelectedId);
+    if (typeof window !== "undefined" && selectedId !== null && effectiveSelectedId === null && !isLoading) {
+      window.localStorage.removeItem(REGION_STORAGE_KEY);
+    }
+  }, [effectiveSelectedId, hasValidSelectedRegion, isLoading, onRegionChange, selectedId]);
 
   function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
     const id = event.target.value ? Number(event.target.value) : null;
@@ -29,6 +57,13 @@ export default function RegionSelector({ onRegionChange }: { onRegionChange: (id
 
     setSelectedId(id);
     onRegionChange(id);
+    if (typeof window !== "undefined") {
+      if (id === null) {
+        window.localStorage.removeItem(REGION_STORAGE_KEY);
+      } else {
+        window.localStorage.setItem(REGION_STORAGE_KEY, String(id));
+      }
+    }
 
     void trackUserAction("region_selected", {
       region_name: region?.name ?? "National Coverage",
@@ -45,7 +80,7 @@ export default function RegionSelector({ onRegionChange }: { onRegionChange: (id
       <div style={{ position: "relative" }}>
         <select
           id="region"
-          value={selectedId ?? ""}
+          value={effectiveSelectedId ?? ""}
           onChange={handleChange}
           disabled={isLoading}
           style={{
@@ -89,9 +124,12 @@ export default function RegionSelector({ onRegionChange }: { onRegionChange: (id
       </p>
 
       {error ? (
-        <p className="inline-alert" role="alert" style={{ marginTop: "0.75rem" }}>
-          {error}
-        </p>
+        <div className="inline-alert" role="alert" style={{ marginTop: "0.75rem", display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+          <span>{error}</span>
+          <button type="button" className="btn-premium" onClick={() => refresh()} style={{ padding: "0.35rem 0.8rem" }}>
+            Retry
+          </button>
+        </div>
       ) : null}
     </div>
   );
