@@ -3,10 +3,29 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from app.core.cache import get_or_set_cache
 from app.core.database import get_session
 from app.models import Stage, Election, Deadline
 
 router = APIRouter()
+
+
+def _get_default_election(session: Session) -> Election | None:
+    # Prefer an election that already has timeline stages so the default
+    # homepage view does not render an empty journey.
+    elections_with_stages = (
+        select(Election)
+        .join(Stage, Stage.election_id == Election.id)
+        .order_by(Election.year.desc(), Election.id.desc())
+        .distinct()
+    )
+    election = session.exec(elections_with_stages).first()
+    if election:
+        return election
+
+    # Fallback to the most recent election if no stages exist yet.
+    return session.exec(select(Election).order_by(Election.year.desc(), Election.id.desc())).first()
+
 
 @router.get("", response_model=List[Stage])
 def get_default_timeline(
@@ -17,12 +36,22 @@ def get_default_timeline(
     Get the ordered timeline stages for a specific election or the first
     available election when no identifier is provided.
     """
-    election = session.get(Election, election_id) if election_id else session.exec(select(Election)).first()
-    if not election:
-        return []
-    
-    statement = select(Stage).where(Stage.election_id == election.id).order_by(Stage.sequence_order)
-    return session.exec(statement).all()
+    cache_key = f"timeline:default:election_id={election_id or 'auto'}"
+
+    def _resolver():
+        election = (
+            session.get(Election, election_id)
+            if election_id
+            else _get_default_election(session)
+        )
+        if not election:
+            return []
+
+        statement = select(Stage).where(Stage.election_id == election.id).order_by(Stage.sequence_order)
+        stages = session.exec(statement).all()
+        return [item.model_dump() for item in stages]
+
+    return get_or_set_cache(cache_key, _resolver)
 
 @router.get("/{election_id}", response_model=List[Stage])
 def get_timeline(election_id: int, session: Session = Depends(get_session)):
@@ -30,22 +59,33 @@ def get_timeline(election_id: int, session: Session = Depends(get_session)):
     """
     Get the ordered timeline stages for a specific election.
     """
-    # Verify election exists
     election = session.get(Election, election_id)
     if not election:
         raise HTTPException(status_code=404, detail="Election not found")
-        
-    statement = select(Stage).where(Stage.election_id == election_id).order_by(Stage.sequence_order)
-    stages = session.exec(statement).all()
-    
-    return stages
+
+    cache_key = f"timeline:by_election:{election_id}"
+
+    def _resolver():
+        statement = select(Stage).where(Stage.election_id == election_id).order_by(Stage.sequence_order)
+        stages = session.exec(statement).all()
+        return [item.model_dump() for item in stages]
+
+    return get_or_set_cache(cache_key, _resolver)
 
 @router.get("/{election_id}/deadlines", response_model=List[Deadline])
 def get_deadlines(election_id: int, session: Session = Depends(get_session)):
     """
     Get all deadlines for a specific election.
     """
-    statement = select(Deadline).where(Deadline.election_id == election_id).order_by(Deadline.date)
-    deadlines = session.exec(statement).all()
-    
-    return deadlines
+    election = session.get(Election, election_id)
+    if not election:
+        raise HTTPException(status_code=404, detail="Election not found")
+
+    cache_key = f"timeline:deadlines:election={election_id}"
+
+    def _resolver():
+        statement = select(Deadline).where(Deadline.election_id == election_id).order_by(Deadline.date)
+        deadlines = session.exec(statement).all()
+        return [item.model_dump() for item in deadlines]
+
+    return get_or_set_cache(cache_key, _resolver)
