@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 from sqlmodel import SQLModel, Field
 
 # --- Shared Models ---
@@ -24,22 +24,22 @@ class Region(SQLModel, table=True):
 class Election(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
-    region_id: Optional[int] = Field(default=None, foreign_key="region.id")
+    region_id: Optional[int] = Field(default=None, foreign_key="region.id", index=True)
     election_type: str  # e.g., Lok Sabha, Vidhan Sabha
-    year: int
+    year: int = Field(index=True)
 
 class Stage(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    election_id: Optional[int] = Field(default=None, foreign_key="election.id")
+    election_id: Optional[int] = Field(default=None, foreign_key="election.id", index=True)
     name: str
     description: str
-    sequence_order: int
+    sequence_order: int = Field(index=True)
 
 class Deadline(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    election_id: Optional[int] = Field(default=None, foreign_key="election.id")
+    election_id: Optional[int] = Field(default=None, foreign_key="election.id", index=True)
     name: str
-    date: datetime
+    date: datetime = Field(index=True)
     description: Optional[str] = None
 
 # --- MVP Feature Models ---
@@ -54,7 +54,7 @@ class GlossaryItem(SQLModel, table=True):
 class EligibilityRule(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     question: str
-    rule_key: str  # e.g., "age_check", "residency_check"
+    rule_key: str = Field(index=True)  # e.g., "age_check", "residency_check"
     expected_value: str
     explanation_if_failed: str
-    sequence_order: int
+    sequence_order: int = Field(index=True)
