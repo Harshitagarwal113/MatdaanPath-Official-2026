@@ -117,6 +117,54 @@ The easiest way to get started is using the provided PowerShell scripts in the `
 
 ---
 
+## ☁️ Single-URL Cloud Run Deployment
+
+This repository includes a root `Dockerfile` that serves frontend and backend from one Cloud Run service URL:
+
+- `nginx` serves static frontend at `/`
+- `nginx` proxies backend API at `/api/*` and health at `/health*`
+- FastAPI runs internally on port `8000`
+
+### Build and deploy
+
+```bash
+gcloud builds submit --tag gcr.io/$GOOGLE_CLOUD_PROJECT/matdaanpath-app
+
+gcloud run deploy matdaanpath-app \
+  --image gcr.io/$GOOGLE_CLOUD_PROJECT/matdaanpath-app \
+  --region asia-south1 \
+  --platform managed \
+  --allow-unauthenticated
+```
+
+### Recommended runtime environment variables
+
+- `DATABASE_URL` (Cloud SQL/Postgres recommended for persistence)
+- `GOOGLE_CLOUD_PROJECT`
+- `GOOGLE_CLOUD_LOCATION=asia-south1`
+- `GEMINI_API_KEY` (or Secret Manager settings)
+- `RUN_DB_MIGRATIONS_ON_STARTUP=true`
+- `RUN_DB_SEED_ON_STARTUP=true` (or `false` if you seed separately)
+- `RUN_BOOTSTRAP=true`
+
+### Optional frontend Firebase build args
+
+If you want Firebase analytics baked into the static frontend at build time:
+
+```bash
+docker build -t matdaanpath-app \
+  --build-arg NEXT_PUBLIC_FIREBASE_API_KEY='...' \
+  --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN='...' \
+  --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID='...' \
+  --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET='...' \
+  --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID='...' \
+  --build-arg NEXT_PUBLIC_FIREBASE_APP_ID='...' \
+  --build-arg NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID='...' \
+  .
+```
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue for feature requests.

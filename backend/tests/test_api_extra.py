@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.api.chat import get_context
+from app.core.cache import clear_cache
 from app.core.settings import get_settings
 from app.models import Deadline, Election, EligibilityRule, GlossaryItem, Region, Stage
 
@@ -30,8 +31,8 @@ def test_get_deadlines(client: TestClient, session: Session):
     session.refresh(election)
 
     deadline = Deadline(
-        name="Last Date to Register", 
-        date=datetime(2026, 5, 1), 
+        name="Last Date to Register",
+        date=datetime.now(UTC).replace(tzinfo=None) + timedelta(days=30),
         election_id=election.id
     )
     session.add(deadline)
@@ -75,11 +76,12 @@ def test_get_deadlines_for_selected_region_includes_national_deadlines(client, s
     session.refresh(state_election)
     session.refresh(other_state_election)
 
+    base_deadline = datetime.now(UTC).replace(tzinfo=None) + timedelta(days=14)
     session.add_all(
         [
-            Deadline(name="National Deadline", date=datetime(2026, 4, 20), election_id=national_election.id),
-            Deadline(name="MH Deadline", date=datetime(2026, 4, 21), election_id=state_election.id),
-            Deadline(name="Other Deadline", date=datetime(2026, 4, 22), election_id=other_state_election.id),
+            Deadline(name="National Deadline", date=base_deadline, election_id=national_election.id),
+            Deadline(name="MH Deadline", date=base_deadline + timedelta(days=1), election_id=state_election.id),
+            Deadline(name="Other Deadline", date=base_deadline + timedelta(days=2), election_id=other_state_election.id),
         ]
     )
     session.commit()
@@ -131,6 +133,46 @@ def test_default_timeline_prefers_election_with_stages(client: TestClient, sessi
     data = response.json()
     assert len(data) == 1
     assert data[0]["name"] == "Registration"
+
+def test_default_timeline_prefers_nearest_upcoming_election(client: TestClient, session: Session):
+    clear_cache(prefix="timeline:")
+
+    current_election = Election(name="Current Election", election_type="General", year=2026)
+    later_election = Election(name="Later Election", election_type="General", year=2027)
+    session.add_all([current_election, later_election])
+    session.commit()
+    session.refresh(current_election)
+    session.refresh(later_election)
+
+    session.add_all(
+        [
+            Stage(name="Current Stage", description="Current flow", sequence_order=1, election_id=current_election.id),
+            Stage(name="Later Stage", description="Later flow", sequence_order=1, election_id=later_election.id),
+        ]
+    )
+
+    now = datetime.now(UTC).replace(tzinfo=None)
+    session.add_all(
+        [
+            Deadline(
+                name="Current Election Deadline",
+                date=now + timedelta(days=5),
+                election_id=current_election.id,
+            ),
+            Deadline(
+                name="Later Election Deadline",
+                date=now + timedelta(days=40),
+                election_id=later_election.id,
+            ),
+        ]
+    )
+    session.commit()
+
+    response = client.get("/api/timeline/")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["name"] == "Current Stage"
 
 
 def test_check_eligibility_with_failed_rule(client, session: Session):

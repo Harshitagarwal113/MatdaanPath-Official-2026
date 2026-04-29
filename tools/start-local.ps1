@@ -44,16 +44,73 @@ function Get-AvailablePort([int]$PreferredPort, [int]$MaxAttempts = 20) {
 function Ensure-FrontendEnv([string]$FrontendDir, [int]$BackendPort) {
   $envFile = Join-Path $FrontendDir ".env.local"
   $apiLine = "NEXT_PUBLIC_API_URL=http://localhost:$BackendPort"
+  $previousApiUrl = $null
 
   if (-not (Test-Path $envFile)) {
     Set-Content -Path $envFile -Value $apiLine -Encoding ascii
-    return
+    return $previousApiUrl
   }
 
-  $content = Get-Content -Raw $envFile
-  if ($content -notmatch "(?m)^NEXT_PUBLIC_API_URL=") {
-    Add-Content -Path $envFile -Value "`n$apiLine"
+  $lines = Get-Content $envFile
+  $hasApiLine = $false
+  $updatedLines = @()
+
+  foreach ($line in $lines) {
+    if ($line -match "^\s*NEXT_PUBLIC_API_URL=(.*)$") {
+      $hasApiLine = $true
+      $previousApiUrl = $matches[1].Trim()
+      $updatedLines += $apiLine
+    } else {
+      $updatedLines += $line
+    }
   }
+
+  if (-not $hasApiLine) {
+    if ($updatedLines.Count -gt 0) {
+      $updatedLines += ""
+    }
+    $updatedLines += $apiLine
+  }
+
+  Set-Content -Path $envFile -Value $updatedLines -Encoding ascii
+  return $previousApiUrl
+}
+
+function Rewrite-StaticFrontendApiUrl(
+  [string]$FrontendDir,
+  [string]$FromApiUrl,
+  [string]$ToApiUrl
+) {
+  if ([string]::IsNullOrWhiteSpace($FromApiUrl)) {
+    return 0
+  }
+
+  if ($FromApiUrl -eq $ToApiUrl) {
+    return 0
+  }
+
+  $outDir = Join-Path $FrontendDir "out"
+  if (-not (Test-Path $outDir)) {
+    return 0
+  }
+
+  $files = Get-ChildItem -Path $outDir -Recurse -File -Include *.html,*.js
+  $updatedCount = 0
+
+  foreach ($file in $files) {
+    $content = Get-Content -Raw $file.FullName
+    if ($content -notlike "*$FromApiUrl*") {
+      continue
+    }
+
+    $updated = $content.Replace($FromApiUrl, $ToApiUrl)
+    if ($updated -ne $content) {
+      Set-Content -Path $file.FullName -Value $updated -Encoding utf8
+      $updatedCount += 1
+    }
+  }
+
+  return $updatedCount
 }
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -102,7 +159,7 @@ if (-not (Wait-HttpOk -Url "http://127.0.0.1:$backendPort/health" -TimeoutSecond
   throw "Backend failed to start on port $backendPort.`n$backendLog"
 }
 
-Ensure-FrontendEnv -FrontendDir $frontendDir -BackendPort $backendPort
+$frontendApiBeforeLocalOverride = Ensure-FrontendEnv -FrontendDir $frontendDir -BackendPort $backendPort
 
 $frontendMode = "next-dev"
 $frontendOut = Join-Path $frontendDir "local.frontend.out.log"
@@ -135,6 +192,15 @@ if (-not $ForceStaticFrontend) {
 }
 
 if ($ForceStaticFrontend -or $frontendMode -eq "static-fallback") {
+  $targetApiUrl = "http://localhost:$backendPort"
+  $rewrittenFiles = Rewrite-StaticFrontendApiUrl `
+    -FrontendDir $frontendDir `
+    -FromApiUrl $frontendApiBeforeLocalOverride `
+    -ToApiUrl $targetApiUrl
+  if ($rewrittenFiles -gt 0) {
+    Write-Step "Updated static bundle API URL in $rewrittenFiles file(s) for local backend connectivity."
+  }
+
   $staticOut = Join-Path $frontendDir "local.frontend.static.out.log"
   $staticErr = Join-Path $frontendDir "local.frontend.static.err.log"
   Remove-Item $staticOut, $staticErr -ErrorAction SilentlyContinue

@@ -19,7 +19,7 @@ Coverage includes:
 ```bash
 cd frontend
 npm run lint
-npm test -- --run
+npm run test:safe
 node .\node_modules\typescript\bin\tsc --noEmit
 ```
 

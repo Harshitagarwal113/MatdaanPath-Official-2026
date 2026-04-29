@@ -2,6 +2,7 @@ from datetime import datetime
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session
+from app.core.cache import clear_cache
 from app.models import Deadline, Election, EligibilityRule, GlossaryItem, Region, Stage
 
 def test_read_root(client: TestClient):
@@ -56,6 +57,8 @@ def test_detailed_health_check_reports_seed_state(client: TestClient, session: S
     assert "cloud_logging_enabled" in payload_after_seed["observability"]
 
 def test_get_timeline(client: TestClient, session: Session):
+    clear_cache(prefix="timeline:")
+
     # Add dummy data
     election = Election(name="General Election", election_type="Lok Sabha", year=2024)
     session.add(election)
@@ -92,6 +95,8 @@ def test_get_eligibility_rules(client: TestClient, session: Session):
 
 
 def test_cache_control_headers_for_read_apis(client: TestClient):
+    clear_cache(prefix="timeline:")
+
     timeline_response = client.get("/api/timeline/")
     assert timeline_response.status_code == 200
     assert timeline_response.headers["Cache-Control"] == "public, max-age=120"
