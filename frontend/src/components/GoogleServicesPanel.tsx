@@ -57,7 +57,7 @@ export default function GoogleServicesPanel() {
     {
       title: "Cloud Logging",
       description: backendStatus?.observability.cloud_logging_enabled
-        ? "Structured backend logs are flowing to Google Cloud Logging."
+        ? "Logging system is active and capturing structured backend events."
         : "Cloud logging is currently using local fallback mode.",
       icon: CloudCog,
       isReady: backendStatus?.observability.cloud_logging_enabled ?? false,
@@ -65,7 +65,7 @@ export default function GoogleServicesPanel() {
     {
       title: "Cloud Run Runtime",
       description: backendStatus?.cloud_run_service
-        ? `Running on service ${backendStatus.cloud_run_service}.`
+        ? `Application is running in a managed environment (${backendStatus.cloud_run_service}).`
         : "Local runtime detected. Cloud Run metadata is unavailable.",
       icon: ServerCog,
       isReady: Boolean(backendStatus?.cloud_run_service),

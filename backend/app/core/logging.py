@@ -15,14 +15,14 @@ def setup_logging():
 
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
     is_testing = os.getenv("TESTING", "false").lower() == "true"
+    disable_cloud_logging = os.getenv("DISABLE_CLOUD_LOGGING", "false").lower() == "true"
     
-    if project_id and not is_testing:
+    if project_id and not is_testing and not disable_cloud_logging:
         try:
-            # Initialize Google Cloud Logging client with a short timeout/check
+            # Initialize Google Cloud Logging client
             client = cloud_logging.Client(project=project_id)
             
-            # Setup standard Python logging
-            # We use a try-except specifically for setup_logging as it can hang or fail on IAM issues
+            # Setup standard Python logging integration
             client.setup_logging(log_level=logging.INFO)
             _cloud_logging_client = client
             atexit.register(client.close)
@@ -34,18 +34,25 @@ def setup_logging():
             logging.info("Cloud Logging initialized for project %s", project_id)
             return error_client
         except Exception as e:
-            # Ensure we reset to basic logging if anything above fails
+            # Fallback to local logging
             logging.basicConfig(
                 level=logging.INFO,
-                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                force=True
             )
-            logging.warning("Cloud Logging init failed (%s). Using standard local logging.", e)
+            msg = str(e)
+            if "permission" in msg.lower() or "403" in msg:
+                logging.warning("Cloud Logging permission denied for project %s. Using local logging.", project_id)
+            else:
+                logging.warning("Cloud Logging init failed (%s). Using standard local logging.", e)
             return None
     else:
         # Fallback to standard local logging
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.INFO, force=True)
         if is_testing:
             logging.info("Testing mode active. Using standard local logging.")
+        elif disable_cloud_logging:
+            logging.info("Cloud Logging disabled by environment variable.")
         else:
             logging.warning("GOOGLE_CLOUD_PROJECT not set. Using standard local logging.")
         return None
