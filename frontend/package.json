@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest",
+    "test:safe": "node ./scripts/run-vitest-safe.mjs"
   },
   "dependencies": {
     "next": "16.2.4",
