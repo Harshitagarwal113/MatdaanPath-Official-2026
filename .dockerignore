@@ -1,9 +1,14 @@
 frontend/node_modules
 frontend/.next
 frontend/out
+frontend/.env.local
+frontend/local.*.log
 backend/venv
 backend/__pycache__
 backend/matdaanpath.db
+backend/.env
+backend/local.*.log
+backend/.pytest_cache
 .git
 **/*.md
 Planning/
