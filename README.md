@@ -1,174 +1,135 @@
-# 🗳️ MatdaanPath
+# 🗳️ MatdaanPath: India's AI-Powered Election Guide
 
 [![Deployment](https://img.shields.io/badge/Deploy-Cloud%20Run-blue?logo=google-cloud&logoColor=white)](https://matdaanpath-app-135105451054.asia-south1.run.app)
 [![Framework](https://img.shields.io/badge/Frontend-Next.js%2015-black?logo=next.js)](https://nextjs.org/)
 [![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![AI](https://img.shields.io/badge/AI-Gemini%202.0-orange?logo=google-gemini&logoColor=white)](https://ai.google.dev/)
+[![Project Status](https://img.shields.io/badge/Status-Healthy-success?style=flat-square)](https://matdaanpath-app-135105451054.asia-south1.run.app/health)
 
-**MatdaanPath** is an AI-powered election education platform designed to empower Indian citizens. It simplifies complex election processes, providing clear information on registration, eligibility, and official voting steps through a modern, intuitive interface.
+**MatdaanPath** (Election Path) is a premium, AI-driven election education platform designed to empower Indian citizens for the **2026 Election Cycle**. By simplifying complex regulatory processes into intuitive, interactive journeys, we ensure every voter is ready for the upcoming Uttar Pradesh and Maharashtra elections.
 
-🔗 **[Live Demo](https://matdaanpath-app-135105451054.asia-south1.run.app)**
-
----
-
-## ✨ Key Features
-
-- 🤖 **AI Chat Assistant**: Context-aware guidance on voting queries, powered by Gemini 2.0.
-- 📅 **Interactive Timeline**: A step-by-step walkthrough of the election lifecycle.
-- ⚖️ **Eligibility Checker**: Instant verification of voting requirements based on real-time backend rules.
-- 📖 **Election Glossary**: A comprehensive database to demystify complex terminology.
-- 📍 **Region-Aware Deadlines**: Stay updated with localized schedules and national fallbacks.
-- 🔔 **Smart Reminders**: Integrated with Google Cloud Tasks for timely notifications.
+🔗 **[Live Production Demo](https://matdaanpath-app-135105451054.asia-south1.run.app)**
 
 ---
 
-## 🏗️ Architecture
+## 🌟 Key Features
 
-MatdaanPath follows a **Cloud Native** architecture, deployed as a unified container on Google Cloud Run.
+- 🤖 **Election Intelligence Assistant**: A context-aware chatbot powered by **Gemini 2.0 Flash**, trained on official ECI guidelines to answer registration and voting queries in real-time.
+- 📅 **2026 Election Journey**: An interactive, multi-stage timeline covering the **UP Assembly By-Elections** and **Maharashtra Local Body Elections 2026**.
+- ⚖️ **Dynamic Eligibility Engine**: Instant validation of voting rights using a robust rules-based system.
+- 📍 **Smart Deadlines**: Stay ahead with a filtered view of upcoming registration and polling dates, localized by region.
+- 🛡️ **Reliability Dashboard**: A live "Google Services" panel monitoring the health of Gemini, Firebase, and Cloud Task integrations.
+- ✨ **Premium Glassmorphism UX**: A state-of-the-art interface built for visual excellence and mobile responsiveness.
+
+---
+
+## 🏗️ Unified Cloud Architecture
+
+MatdaanPath is engineered as a **Modular Monolith in a Box**, deploying as a single container to Google Cloud Run for maximum efficiency.
 
 ```mermaid
 graph TD
-    User([User Browser]) --> Nginx[Nginx Reverse Proxy]
-    subgraph "Cloud Run Container"
-        Nginx -->|Static Assets| NextJS[Next.js Frontend]
+    User([User Browser]) -->|HTTPS| Nginx[Nginx Reverse Proxy]
+    subgraph "Single Cloud Run Container"
+        Nginx -->|Static Assets| NextJS[Next.js 15 Frontend]
         Nginx -->|/api/*| FastAPI[FastAPI Backend]
         FastAPI --> SQLite[(SQLite / Cloud SQL)]
         FastAPI --> Gemini[Gemini AI Engine]
+        FastAPI --> Firebase[Firebase Auth & Analytics]
         FastAPI --> CloudTasks[Google Cloud Tasks]
     end
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-### Frontend
+### **Frontend Excellence**
 - **Framework**: Next.js 15 (App Router)
-- **Styling**: Vanilla CSS with modern Glassmorphism effects
-- **Animations**: Framer Motion
-- **Language**: TypeScript
+- **Styling**: Vanilla CSS with curated Harmonious Palettes
+- **Animations**: Framer Motion for smooth state transitions
+- **Infrastructure**: Firebase SDK for Analytics & User Insights
 
-### Backend
-- **Core**: FastAPI
-- **Data Access**: SQLModel (SQLAlchemy + Pydantic)
-- **Migrations**: Alembic
-- **Task Queue**: Google Cloud Tasks
-
-### Infrastructure & DevOps
-- **Cloud**: Google Cloud Platform (GCP)
-- **Deployment**: Cloud Run
-- **Observability**: Cloud Logging & Error Reporting
-- **Secrets**: Google Secret Manager
+### **Backend Resilience**
+- **Core**: FastAPI (Python 3.11)
+- **ORM**: SQLModel with Alembic migrations
+- **AI**: Google GenAI SDK (Gemini 2.0 Flash Lite)
+- **Observability**: Structured Cloud Logging & Error Reporting
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Local Development
 
-### Prerequisites
-- Node.js 20+
-- Python 3.11+
-- Google Cloud SDK (for deployment/cloud features)
+The project includes a suite of PowerShell tools to ensure a smooth "one-click" developer experience.
 
-### Quick Start (Local Development)
-The easiest way to get started is using the provided PowerShell scripts in the `tools/` directory.
-
+### **Quick Start**
 ```powershell
-# Initialize and start both Frontend & Backend
+# 1. Clone and enter the project
+git clone https://github.com/Harshitagarwal113/MatdaanPath.git
+cd MatdaanPath
+
+# 2. Launch the entire stack (Backend + Frontend + Seed Data)
 .\tools\start-local.ps1
-
-# To stop all services
-.\tools\stop-local.ps1
 ```
 
-### Manual Setup
+### **Manual Setup**
 
-#### Backend
-1. `cd backend`
-2. `python -m venv venv && .\venv\Scripts\activate`
-3. `pip install -r requirements.txt`
-4. `alembic upgrade head`
-5. `python scripts/seed_data.py`
-6. `uvicorn app.main:app --reload --port 8000`
+**Backend:**
+```bash
+cd backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+python scripts/seed_data.py
+uvicorn app.main:app --reload --port 8000
+```
 
-#### Frontend
-1. `cd frontend`
-2. `npm install`
-3. `npm run dev` (Frontend runs on `http://localhost:3000`)
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
-## 📝 Environment Variables
+## 📝 Configuration & Environment
 
-### Backend (`.env`)
-| Variable | Description |
+### **Backend Variables (`.env`)**
+| Key | Purpose |
 | :--- | :--- |
-| `GEMINI_API_KEY` | Your Google AI API Key |
-| `GOOGLE_CLOUD_PROJECT` | GCP Project ID |
-| `DATABASE_URL` | Connection string (Default: `sqlite:///./matdaanpath.db`) |
-| `ADMIN_API_TOKEN` | Secure token for administrative operations |
+| `GEMINI_API_KEY` | Access to the Gemini 2.0 AI Model |
+| `GOOGLE_CLOUD_PROJECT` | GCP Project ID (Default: `matdaanpath`) |
+| `DATABASE_URL` | SQLAlchemy connection string |
+| `DISABLE_CLOUD_LOGGING` | Set to `true` for cleaner local terminal logs |
+
+### **Frontend Build Args**
+| Key | Purpose |
+| :--- | :--- |
+| `NEXT_PUBLIC_API_URL` | Base API URL (Defaults to relative `/api` for Cloud Run) |
+| `NEXT_PUBLIC_FIREBASE_*` | Client-side Firebase Analytics configuration |
 
 ---
 
-## 🛡️ API Diagnostics
+## 🛡️ Diagnostics & API
 
-- `GET /health`: Basic liveness check.
-- `GET /health/detailed`: Deep health check (DB, counts, observability).
-- `GET /api/google-services/status`: Runtime status of Gemini and Cloud integrations.
-
----
-
-## ☁️ Single-URL Cloud Run Deployment
-
-This repository includes a root `Dockerfile` that serves frontend and backend from one Cloud Run service URL:
-
-- `nginx` serves static frontend at `/`
-- `nginx` proxies backend API at `/api/*` and health at `/health*`
-- FastAPI runs internally on port `8000`
-
-### Build and deploy
-
-```bash
-gcloud builds submit --tag gcr.io/$GOOGLE_CLOUD_PROJECT/matdaanpath-app
-
-gcloud run deploy matdaanpath-app \
-  --image gcr.io/$GOOGLE_CLOUD_PROJECT/matdaanpath-app \
-  --region asia-south1 \
-  --platform managed \
-  --allow-unauthenticated
-```
-
-### Recommended runtime environment variables
-
-- `DATABASE_URL` (Cloud SQL/Postgres recommended for persistence)
-- `GOOGLE_CLOUD_PROJECT`
-- `GOOGLE_CLOUD_LOCATION=asia-south1`
-- `GEMINI_API_KEY` (or Secret Manager settings)
-- `RUN_DB_MIGRATIONS_ON_STARTUP=true`
-- `RUN_DB_SEED_ON_STARTUP=true` (or `false` if you seed separately)
-- `RUN_BOOTSTRAP=true`
-
-### Optional frontend Firebase build args
-
-If you want Firebase analytics baked into the static frontend at build time:
-
-```bash
-docker build -t matdaanpath-app \
-  --build-arg NEXT_PUBLIC_FIREBASE_API_KEY='...' \
-  --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN='...' \
-  --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID='...' \
-  --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET='...' \
-  --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID='...' \
-  --build-arg NEXT_PUBLIC_FIREBASE_APP_ID='...' \
-  --build-arg NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID='...' \
-  .
-```
+- **Liveness**: `GET /health`
+- **System Health**: `GET /health/detailed` (DB stats, seeding status, service health)
+- **Service Status**: `GET /api/google-services/status` (AI & Cloud readiness)
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contributing & License
 
-Contributions are welcome! Please feel free to submit a Pull Request or open an issue for feature requests.
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ---
 
-Developed with ❤️ by [Harshit Agarwal](https://github.com/Harshitagarwal113)
+Developed with ❤️ by **[Harshit Agarwal](https://github.com/Harshitagarwal113)**
+*Empowering Democracy through Intelligence.*
