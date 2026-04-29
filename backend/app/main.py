@@ -2,6 +2,8 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
+load_dotenv(override=True)
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session
@@ -19,7 +21,6 @@ from app.core.database import get_session
 from app.core.health import get_table_counts
 from app.core.logging import get_logger, get_observability_status, setup_logging
 
-load_dotenv(override=True)
 setup_logging()
 logger = get_logger("matdaanpath")
 

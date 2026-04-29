@@ -28,8 +28,10 @@ def _init_client():
     global _client, _provider
 
     settings = get_settings()
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    api_key_source = "env"
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+    api_key = gemini_api_key or google_api_key
+    api_key_source = "gemini_env" if gemini_api_key else ("google_env" if google_api_key else "missing")
     if not api_key and settings.secret_manager_enabled:
         api_key = get_secret_payload(settings.gemini_api_key_secret) or ""
         api_key_source = "secret_manager" if api_key else "unavailable"
@@ -40,8 +42,8 @@ def _init_client():
     try:
         from google import genai
 
-        # Prefer a proper API key (starts with "AI") over Vertex/ADC tokens.
-        if api_key and api_key.startswith("AI"):
+        # Prefer an explicit API key when provided (Gemini keys typically start with "AIza").
+        if api_key:
             _client = genai.Client(api_key=api_key)
             _provider = "gemini_api_key"
             logger.info("Chat configured with Gemini API key (%s).", api_key_source)

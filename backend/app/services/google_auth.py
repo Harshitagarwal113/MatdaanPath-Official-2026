@@ -18,25 +18,33 @@ def _ensure_firebase_app():
         logger.warning("Firebase Admin SDK unavailable: %s", exc)
         return None
 
-    if firebase_admin._apps:  # type: ignore[attr-defined]
-        return firebase_admin.get_app()
+    try:
+        from firebase_admin import _apps, get_app, initialize_app
+    except ImportError:
+        return None
+
+    if _apps:
+        return get_app()
 
     try:
         if settings.firebase_service_account_json:
+            from firebase_admin import credentials
             parsed_credentials = json.loads(settings.firebase_service_account_json)
             credential = credentials.Certificate(parsed_credentials)
-            return firebase_admin.initialize_app(credential)
+            return initialize_app(credential)
 
         if settings.firebase_project_id:
-            return firebase_admin.initialize_app(
-                options={"projectId": settings.firebase_project_id},
-            )
+            return initialize_app(options={"projectId": settings.firebase_project_id})
 
         if settings.google_cloud_project:
-            return firebase_admin.initialize_app(
-                options={"projectId": settings.google_cloud_project},
-            )
-    except Exception as exc:  # pragma: no cover - external runtime dependency
+            return initialize_app(options={"projectId": settings.google_cloud_project})
+    except ValueError as exc:
+        # This handles the "The default Firebase app already exists" case
+        if "already exists" in str(exc):
+            return get_app()
+        logger.warning("Firebase app initialization failed: %s", exc)
+        return None
+    except Exception as exc:
         logger.warning("Firebase app initialization failed: %s", exc)
         return None
 
