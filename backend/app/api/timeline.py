@@ -1,6 +1,8 @@
+from datetime import UTC, datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.core.cache import get_or_set_cache
@@ -11,7 +13,23 @@ router = APIRouter()
 
 
 def _get_default_election(session: Session) -> Election | None:
-    # Prefer an election that already has timeline stages so the default
+    now = datetime.now(UTC).replace(tzinfo=None)
+
+    # Prefer an election that has both stages and the nearest upcoming deadline.
+    # This keeps the homepage journey aligned with the most current election activity.
+    elections_with_upcoming_deadlines = (
+        select(Election)
+        .join(Stage, Stage.election_id == Election.id)
+        .join(Deadline, Deadline.election_id == Election.id)
+        .where(Deadline.date >= now)
+        .group_by(Election.id)
+        .order_by(func.min(Deadline.date).asc(), Election.year.desc(), Election.id.desc())
+    )
+    election = session.exec(elections_with_upcoming_deadlines).first()
+    if election:
+        return election
+
+    # Fallback: prefer an election that already has timeline stages so the default
     # homepage view does not render an empty journey.
     elections_with_stages = (
         select(Election)

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -23,9 +24,12 @@ def get_deadlines(
     cache_key = f"deadlines:region={region_id or 'all'}:limit={limit}"
 
     def _resolver():
+        # Keep a naive UTC datetime to match stored DB values while avoiding utcnow deprecation.
+        now = datetime.now(UTC).replace(tzinfo=None)
         statement = (
             select(Deadline)
             .join(Election, Deadline.election_id == Election.id, isouter=True)
+            .where(Deadline.date >= now)
             .order_by(Deadline.date, Deadline.name)
         )
         if region_id:

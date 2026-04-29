@@ -1,6 +1,6 @@
-import sys
 import os
-from datetime import datetime
+import sys
+from datetime import UTC, datetime, timedelta
 
 # Add the app directory to the path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -146,14 +146,15 @@ def seed_data():
         )
 
         # 4. Deadlines
+        now = datetime.now(UTC).replace(tzinfo=None)
         deadlines = [
-            (lok_sabha.id, "Voter Registration Deadline", datetime(2024, 4, 15), "Last day to register for Phase 1."),
-            (lok_sabha.id, "Phase 1 Polling Day", datetime(2024, 4, 19), "Voting begins across 21 States/UTs."),
-            (lok_sabha.id, "Counting Day", datetime(2024, 6, 4), "Result announcement for all phases."),
-            (up_byelection.id, "UP Nomination Deadline", datetime(2026, 5, 2), "Last date for candidate nominations in Uttar Pradesh."),
-            (up_byelection.id, "UP Polling Day", datetime(2026, 5, 12), "Polling for the Uttar Pradesh by-election."),
-            (mh_local.id, "Maharashtra Ward Roll Revision", datetime(2026, 6, 6), "Final publication of the local body electoral roll."),
-            (mh_local.id, "Maharashtra Polling Day", datetime(2026, 6, 18), "Polling for participating municipal wards."),
+            (lok_sabha.id, "Voter Registration Deadline", now + timedelta(days=10), "Last day to register for Phase 1."),
+            (lok_sabha.id, "Phase 1 Polling Day", now + timedelta(days=20), "Voting begins across 21 States/UTs."),
+            (lok_sabha.id, "Counting Day", now + timedelta(days=60), "Result announcement for all phases."),
+            (up_byelection.id, "UP Nomination Deadline", now + timedelta(days=25), "Last date for candidate nominations in Uttar Pradesh."),
+            (up_byelection.id, "UP Polling Day", now + timedelta(days=35), "Polling for the Uttar Pradesh by-election."),
+            (mh_local.id, "Maharashtra Ward Roll Revision", now + timedelta(days=45), "Final publication of the local body electoral roll."),
+            (mh_local.id, "Maharashtra Polling Day", now + timedelta(days=57), "Polling for participating municipal wards."),
         ]
         for election_id, name, date, description in deadlines:
             get_or_create(
@@ -183,11 +184,26 @@ def seed_data():
 
         # 3. Stages
         stages = [
+            # Lok Sabha 2024
             (lok_sabha.id, "Voter Registration", "Ensure you are on the electoral roll.", 1),
             (lok_sabha.id, "Nomination of Candidates", "Candidates file their papers.", 2),
             (lok_sabha.id, "Campaign Period", "Parties present their manifestos.", 3),
             (lok_sabha.id, "Polling Day", "Cast your vote at the assigned booth.", 4),
             (lok_sabha.id, "Counting and Results", "Votes are counted and winners declared.", 5),
+
+            # UP By-Election 2026
+            (up_byelection.id, "Voter List Verification", "Check your name in the supplementary voter list for the by-election.", 1),
+            (up_byelection.id, "Candidate Nominations", "Candidates for the assembly seats file their nomination papers.", 2),
+            (up_byelection.id, "Silent Period", "Campaigning ends 48 hours before polling starts.", 3),
+            (up_byelection.id, "Polling Day", "Cast your vote for the assembly by-election.", 4),
+            (up_byelection.id, "Result Declaration", "Votes are counted and the new representative is announced.", 5),
+
+            # Maharashtra Local 2026
+            (mh_local.id, "Ward Roll Revision", "Municipal wards update their electoral rolls.", 1),
+            (mh_local.id, "Ward Nominations", "Local candidates file papers for their respective wards.", 2),
+            (mh_local.id, "Local Campaigning", "Candidates focus on hyper-local issues and ward development.", 3),
+            (mh_local.id, "Voting Day", "Polling for municipal and local body elections.", 4),
+            (mh_local.id, "Counting & Results", "Announcement of local ward winners and corporators.", 5),
         ]
         for election_id, name, description, sequence_order in stages:
             get_or_create(
