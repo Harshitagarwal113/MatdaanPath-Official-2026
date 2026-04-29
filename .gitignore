@@ -9,26 +9,34 @@ __pycache__/
 dist/
 build/
 .eggs/
+.coverage
+htmlcov/
+.pytest_cache/
 
 # Virtual environments
 backend/venv/
 venv/
 env/
+.env
 .env.local
 
 # Secrets — NEVER commit the real .env
 backend/.env
+frontend/.env.local
 
 # SQLite local DB
 backend/matdaanpath.db
-
-# Alembic versions are intentionally tracked (not ignored)
 
 # Node / Next.js
 frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/.env.local
+frontend/*.log
+
+# Logs
+*.log
+local.*.log
 
 # Cloud Build / Docker temp
 .cloudbuild/
@@ -36,7 +44,8 @@ frontend/.env.local
 # OS / Editor
 .DS_Store
 Thumbs.db
-.vscode/settings.json
+.vscode/
+.idea/
 *.swp
 
 # Firebase
