@@ -37,9 +37,11 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
-# Fix gRPC poll strategy for containerized environments
+# Fix gRPC for containerized environments
 ENV GRPC_POLL_STRATEGY=poll
 ENV GRPC_DNS_RESOLVER=native
+ENV GRPC_ENABLE_FORK_SUPPORT=0
+ENV GRPC_VERBOSITY=ERROR
 
 # Install nginx, supervisor, and libpq for psycopg2
 RUN apt-get update && \
@@ -50,7 +52,8 @@ RUN apt-get update && \
 WORKDIR /app
 
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
 
