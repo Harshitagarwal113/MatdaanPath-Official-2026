@@ -4,22 +4,22 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session
-from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import Depends, FastAPI, HTTPException  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from sqlmodel import Session  # noqa: E402
+from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
 
-from app.api.chat import router as chat_router
-from app.api.admin import router as admin_router
-from app.api.deadlines import router as deadlines_router
-from app.api.eligibility import router as eligibility_router
-from app.api.glossary import router as glossary_router
-from app.api.google_services import router as google_services_router
-from app.api.reminders import router as reminders_router
-from app.api.timeline import router as timeline_router
-from app.core.database import get_session
-from app.core.health import get_table_counts
-from app.core.logging import get_logger, get_observability_status, setup_logging
+from app.api.chat import router as chat_router  # noqa: E402
+from app.api.admin import router as admin_router  # noqa: E402
+from app.api.deadlines import router as deadlines_router  # noqa: E402
+from app.api.eligibility import router as eligibility_router  # noqa: E402
+from app.api.glossary import router as glossary_router  # noqa: E402
+from app.api.google_services import router as google_services_router  # noqa: E402
+from app.api.reminders import router as reminders_router  # noqa: E402
+from app.api.timeline import router as timeline_router  # noqa: E402
+from app.core.database import get_session  # noqa: E402
+from app.core.health import get_table_counts  # noqa: E402
+from app.core.logging import get_logger, get_observability_status, setup_logging  # noqa: E402
 
 setup_logging()
 logger = get_logger("matdaanpath")

@@ -6,7 +6,7 @@ from sqlalchemy import pool
 
 from alembic import context
 from sqlmodel import SQLModel
-from app.models import *  # Import all models to register with SQLModel
+from app.models import *  # noqa: F403 # Import all models to register with SQLModel
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

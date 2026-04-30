@@ -12,7 +12,6 @@ def _ensure_firebase_app():
     settings = get_settings()
 
     try:
-        import firebase_admin
         from firebase_admin import credentials
     except Exception as exc:  # pragma: no cover - optional dependency
         logger.warning("Firebase Admin SDK unavailable: %s", exc)
