@@ -37,9 +37,13 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
-# Install nginx and supervisor
+# Fix gRPC poll strategy for containerized environments
+ENV GRPC_POLL_STRATEGY=poll
+ENV GRPC_DNS_RESOLVER=native
+
+# Install nginx, supervisor, and libpq for psycopg2
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends nginx supervisor gettext-base && \
+    apt-get install -y --no-install-recommends nginx supervisor gettext-base libpq5 && \
     rm -rf /var/lib/apt/lists/*
 
 # ── FastAPI backend ──────────────────────────────────────
