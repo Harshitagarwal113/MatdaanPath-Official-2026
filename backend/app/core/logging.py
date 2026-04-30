@@ -63,35 +63,11 @@ def setup_logging():
     # Always set up basic logging first so the app works
     logging.basicConfig(level=logging.INFO, force=True)
 
-    if (
-        project_id
-        and not is_testing
-        and not disable_cloud_logging
-    ):
-        # Run Cloud Logging init in a thread with timeout
-        # so it never blocks app startup.
-        init_thread = threading.Thread(
-            target=_init_cloud_logging,
-            args=(project_id,),
-            daemon=True,
-        )
-        init_thread.start()
-        init_thread.join(timeout=10)  # pragma: no cover
-
-        if init_thread.is_alive():  # pragma: no cover
-            logging.warning(
-                "Cloud Logging init timed out for"
-                " project %s. Using local logging.",
-                project_id,
-            )
-        elif (  # pragma: no cover
-            _cloud_logging_client is None
-        ):
-            logging.warning(  # pragma: no cover
-                "Cloud Logging init failed for"
-                " project %s. Using local logging.",
-                project_id,
-            )
+    if project_id and not is_testing and not disable_cloud_logging:
+        try:
+            _init_cloud_logging(project_id)
+        except Exception as exc:
+            logging.warning("Cloud Logging init failed: %s", exc)
     else:
         if is_testing:
             logging.info(

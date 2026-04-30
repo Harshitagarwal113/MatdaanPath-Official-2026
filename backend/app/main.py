@@ -27,6 +27,11 @@ from app.core.logging import (
 
 load_dotenv(override=True)
 
+import faulthandler
+faulthandler.enable()
+import sys
+faulthandler.dump_traceback_later(10, repeat=True, file=sys.stderr)
+
 setup_logging()
 logger = get_logger("matdaanpath")
 
