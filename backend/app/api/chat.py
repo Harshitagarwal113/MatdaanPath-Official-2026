@@ -76,9 +76,7 @@ def _init_client():
         _provider = "unconfigured"
         logger.warning("Chat client initialization failed: %s", exc)
 
-
-_init_client()
-
+# _init_client() is now called lazily to prevent blocking application startup
 
 # ---------------------------------------------------------------------------
 # Schemas
@@ -313,6 +311,9 @@ _FALLBACK_DISCLAIMER = (
 
 
 def get_chat_service_status() -> dict[str, str | bool]:
+    if _provider == "unconfigured":
+        _init_client()
+
     settings = get_settings()
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
     google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
@@ -351,6 +352,9 @@ async def chat(
     logger.info("Chat request received: %s...", request.message[:50])
     context, sources = get_context_bundle(request.message, session)
     system_instruction = _SYSTEM_PROMPT + context
+
+    if _provider == "unconfigured":
+        _init_client()
 
     if _client is None:
         return ChatResponse(
