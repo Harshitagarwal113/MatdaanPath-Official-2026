@@ -23,12 +23,16 @@ describe("GoogleServicesPanel", () => {
         google_cloud_project: "matdaanpath-prod",
         cloud_run_service: "matdaanpath-api",
         cloud_run_revision: "matdaanpath-api-00012",
+        deployment_mode: "cloud_run",
+        ready_for_cloud_run: false,
+        blocking_issues: ["Cloud Tasks is not ready."],
         observability: {
           cloud_logging_enabled: true,
           error_reporting_enabled: true,
         },
         gemini: {
           gemini_enabled: true,
+          ready: true,
           provider: "gemini_api_key",
           model: "gemini-2.0-flash-lite",
           vertex_project_configured: true,
@@ -37,17 +41,23 @@ describe("GoogleServicesPanel", () => {
         },
         firebase_auth: {
           enabled: true,
+          ready: true,
+          sdk_available: true,
           project_id_configured: true,
         },
         cloud_tasks: {
-          enabled: false,
+          configured: false,
+          sdk_available: false,
+          client_available: false,
+          ready: false,
           queue_id: "unconfigured",
           target_url_configured: false,
           local_fallback_queue_size: 0,
         },
         secret_manager: {
-          enabled: true,
-          gemini_secret_configured: true,
+          configured: true,
+          sdk_available: true,
+          ready: true,
         },
         admin_auth: {
           configured: true,

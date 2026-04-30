@@ -7,26 +7,28 @@ from sqlmodel.pool import StaticPool
 
 os.environ["TESTING"] = "true"
 
-from app.main import app
-from app.core.database import get_session
+from app.main import app  # noqa: E402
+from app.core.database import get_session  # noqa: E402
+
 
 # Setup in-memory SQLite database for testing
 @pytest.fixture(name="session")
 def session_fixture():
     engine = create_engine(
-        "sqlite://", 
-        connect_args={"check_same_thread": False}, 
-        poolclass=StaticPool
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
 
+
 @pytest.fixture(name="client")
 def client_fixture(session: Session):
     def get_session_override():
         return session
-    
+
     app.dependency_overrides[get_session] = get_session_override
     client = TestClient(app)
     yield client

@@ -13,7 +13,12 @@ logger = get_logger("reminders")
 
 
 class ReminderSubscriptionRequest(BaseModel):
-    email: str = Field(..., min_length=5, max_length=320, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    email: str = Field(
+        ...,
+        min_length=5,
+        max_length=320,
+        pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+    )
     deadline_name: str = Field(..., min_length=3, max_length=150)
     deadline_date: datetime
     region_code: str | None = Field(default=None, max_length=10)
@@ -61,8 +66,13 @@ def deliver_deadline_reminder(
     x_tasks_token: str | None = Header(default=None),
 ):
     settings = get_settings()
-    if settings.cloud_tasks_verification_token and x_tasks_token != settings.cloud_tasks_verification_token:
-        raise HTTPException(status_code=401, detail="Invalid task delivery token.")
+    if (
+        settings.cloud_tasks_verification_token
+        and x_tasks_token != settings.cloud_tasks_verification_token
+    ):
+        raise HTTPException(
+            status_code=401, detail="Invalid task delivery token."
+        )  # noqa: E501
 
     # Placeholder delivery worker until Email/SMS provider wiring is added.
     logger.info(
@@ -74,5 +84,5 @@ def deliver_deadline_reminder(
     return {
         "delivered": False,
         "delivery_provider": "pending_configuration",
-        "message": "Reminder payload accepted. Configure email/SMS provider for actual delivery.",
+        "message": "Reminder payload accepted. Configure email/SMS provider for actual delivery.",  # noqa: E501
     }

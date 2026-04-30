@@ -6,18 +6,29 @@ from sqlmodel import Session
 from app.api.chat import get_context
 from app.core.cache import clear_cache
 from app.core.settings import get_settings
-from app.models import Deadline, Election, EligibilityRule, GlossaryItem, Region, Stage
+from app.models import (
+    Deadline,
+    Election,
+    EligibilityRule,
+    GlossaryItem,
+    Region,
+    Stage,
+)
+
 
 def test_get_glossary(client: TestClient, session: Session):
-    item = GlossaryItem(term="Voter ID", definition="Identification card for voting")
+    item = GlossaryItem(
+        term="Voter ID", definition="Identification card for voting"
+    )  # noqa: E501
     session.add(item)
     session.commit()
-    
+
     response = client.get("/api/glossary/")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
     assert data[0]["term"] == "Voter ID"
+
 
 def test_get_deadlines(client: TestClient, session: Session):
     region = Region(name="National", code="IN")
@@ -25,7 +36,12 @@ def test_get_deadlines(client: TestClient, session: Session):
     session.commit()
     session.refresh(region)
 
-    election = Election(name="Test Election", election_type="State", year=2026, region_id=region.id)
+    election = Election(
+        name="Test Election",
+        election_type="State",
+        year=2026,
+        region_id=region.id,
+    )
     session.add(election)
     session.commit()
     session.refresh(election)
@@ -33,18 +49,21 @@ def test_get_deadlines(client: TestClient, session: Session):
     deadline = Deadline(
         name="Last Date to Register",
         date=datetime.now(UTC).replace(tzinfo=None) + timedelta(days=30),
-        election_id=election.id
+        election_id=election.id,
     )
     session.add(deadline)
     session.commit()
-    
+
     response = client.get("/api/deadlines/")
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 1
     assert any(d["name"] == "Last Date to Register" for d in data)
 
-def test_get_deadlines_for_selected_region_includes_national_deadlines(client, session: Session):
+
+def test_get_deadlines_for_selected_region_includes_national_deadlines(
+    client, session: Session
+):
     national_region = Region(name="India", code="IN")
     state_region = Region(name="Maharashtra", code="MH")
     session.add_all([national_region, state_region])
@@ -79,9 +98,21 @@ def test_get_deadlines_for_selected_region_includes_national_deadlines(client, s
     base_deadline = datetime.now(UTC).replace(tzinfo=None) + timedelta(days=14)
     session.add_all(
         [
-            Deadline(name="National Deadline", date=base_deadline, election_id=national_election.id),
-            Deadline(name="MH Deadline", date=base_deadline + timedelta(days=1), election_id=state_election.id),
-            Deadline(name="Other Deadline", date=base_deadline + timedelta(days=2), election_id=other_state_election.id),
+            Deadline(
+                name="National Deadline",
+                date=base_deadline,
+                election_id=national_election.id,
+            ),
+            Deadline(
+                name="MH Deadline",
+                date=base_deadline + timedelta(days=1),
+                election_id=state_election.id,
+            ),
+            Deadline(
+                name="Other Deadline",
+                date=base_deadline + timedelta(days=2),
+                election_id=other_state_election.id,
+            ),
         ]
     )
     session.commit()
@@ -93,16 +124,22 @@ def test_get_deadlines_for_selected_region_includes_national_deadlines(client, s
     assert "MH Deadline" in names
     assert "Other Deadline" not in names
 
+
 def test_get_timeline_by_election(client: TestClient, session: Session):
     election = Election(name="LSE 2024", election_type="Lok Sabha", year=2024)
     session.add(election)
     session.commit()
     session.refresh(election)
 
-    stage = Stage(name="Polling", description="Go vote", sequence_order=2, election_id=election.id)
+    stage = Stage(
+        name="Polling",
+        description="Go vote",
+        sequence_order=2,
+        election_id=election.id,
+    )
     session.add(stage)
     session.commit()
-    
+
     response = client.get(f"/api/timeline/?election_id={election.id}")
     assert response.status_code == 200
     data = response.json()
@@ -110,9 +147,15 @@ def test_get_timeline_by_election(client: TestClient, session: Session):
     assert data[0]["name"] == "Polling"
 
 
-def test_default_timeline_prefers_election_with_stages(client: TestClient, session: Session):
-    election_without_stages = Election(name="New Election 2026", election_type="State", year=2026)
-    election_with_stages = Election(name="General Election 2024", election_type="Lok Sabha", year=2024)
+def test_default_timeline_prefers_election_with_stages(
+    client: TestClient, session: Session
+):
+    election_without_stages = Election(
+        name="New Election 2026", election_type="State", year=2026
+    )
+    election_with_stages = Election(
+        name="General Election 2024", election_type="Lok Sabha", year=2024
+    )
     session.add_all([election_without_stages, election_with_stages])
     session.commit()
     session.refresh(election_without_stages)
@@ -134,11 +177,18 @@ def test_default_timeline_prefers_election_with_stages(client: TestClient, sessi
     assert len(data) == 1
     assert data[0]["name"] == "Registration"
 
-def test_default_timeline_prefers_nearest_upcoming_election(client: TestClient, session: Session):
+
+def test_default_timeline_prefers_nearest_upcoming_election(
+    client: TestClient, session: Session
+):
     clear_cache(prefix="timeline:")
 
-    current_election = Election(name="Current Election", election_type="General", year=2026)
-    later_election = Election(name="Later Election", election_type="General", year=2027)
+    current_election = Election(
+        name="Current Election", election_type="General", year=2026
+    )
+    later_election = Election(
+        name="Later Election", election_type="General", year=2027
+    )  # noqa: E501
     session.add_all([current_election, later_election])
     session.commit()
     session.refresh(current_election)
@@ -146,8 +196,18 @@ def test_default_timeline_prefers_nearest_upcoming_election(client: TestClient, 
 
     session.add_all(
         [
-            Stage(name="Current Stage", description="Current flow", sequence_order=1, election_id=current_election.id),
-            Stage(name="Later Stage", description="Later flow", sequence_order=1, election_id=later_election.id),
+            Stage(
+                name="Current Stage",
+                description="Current flow",
+                sequence_order=1,
+                election_id=current_election.id,
+            ),
+            Stage(
+                name="Later Stage",
+                description="Later flow",
+                sequence_order=1,
+                election_id=later_election.id,
+            ),
         ]
     )
 
@@ -205,8 +265,11 @@ def test_check_eligibility_with_failed_rule(client, session: Session):
     assert payload["eligible"] is False
     assert payload["failed_rules"] == ["Are you a citizen?"]
     assert len(payload["failed_requirements"]) == 1
-    assert payload["failed_requirements"][0]["question"] == "Are you a citizen?"
+    assert (
+        payload["failed_requirements"][0]["question"] == "Are you a citizen?"
+    )  # noqa: E501
     assert "official_url" in payload["failed_requirements"][0]
+
 
 def test_chat_not_configured(client: TestClient):
     # Test chat endpoint. In test environment, it might return:
@@ -221,6 +284,9 @@ def test_google_services_status_endpoint(client: TestClient):
     response = client.get("/api/google-services/status")
     assert response.status_code == 200
     payload = response.json()
+    assert "ready_for_cloud_run" in payload
+    assert "blocking_issues" in payload
+    assert "deployment_mode" in payload
     assert "observability" in payload
     assert "gemini" in payload
     assert "firebase_auth" in payload
@@ -230,6 +296,9 @@ def test_google_services_status_endpoint(client: TestClient):
     assert "updated_at" in payload
     assert "cloud_logging_enabled" in payload["observability"]
     assert "gemini_enabled" in payload["gemini"]
+    assert "ready" in payload["gemini"]
+    assert "sdk_available" in payload["cloud_tasks"]
+    assert "configured" in payload["secret_manager"]
     assert response.headers["Cache-Control"] == "private, max-age=30"
 
 
@@ -238,7 +307,9 @@ def test_admin_endpoint_requires_auth(client: TestClient):
     assert response.status_code == 401
 
 
-def test_admin_endpoint_accepts_admin_api_token(client: TestClient, monkeypatch):
+def test_admin_endpoint_accepts_admin_api_token(
+    client: TestClient, monkeypatch
+):  # noqa: E501
     monkeypatch.setenv("ADMIN_API_TOKEN", "test-admin-token")
     monkeypatch.setenv("ALLOW_INSECURE_ADMIN", "false")
     get_settings.cache_clear()
@@ -293,7 +364,9 @@ def test_reminder_subscription_works_without_auth(client: TestClient):
 
 
 def test_chat_context_is_bounded_and_relevant(session: Session):
-    election = Election(name="General Election", election_type="Lok Sabha", year=2026)
+    election = Election(
+        name="General Election", election_type="Lok Sabha", year=2026
+    )  # noqa: E501
     session.add(election)
     session.commit()
     session.refresh(election)
@@ -312,14 +385,29 @@ def test_chat_context_is_bounded_and_relevant(session: Session):
                 sequence_order=2,
                 election_id=election.id,
             ),
-            GlossaryItem(term="EVM", definition="Electronic Voting Machine", category="Voting"),
-            GlossaryItem(term="Polling Booth", definition="Location where people cast votes", category="Voting"),
-            GlossaryItem(term="Voter List", definition="Published roll of eligible voters", category="Registration"),
+            GlossaryItem(
+                term="EVM",
+                definition="Electronic Voting Machine",
+                category="Voting",
+            ),
+            GlossaryItem(
+                term="Polling Booth",
+                definition="Location where people cast votes",
+                category="Voting",
+            ),
+            GlossaryItem(
+                term="Voter List",
+                definition="Published roll of eligible voters",
+                category="Registration",
+            ),
         ]
     )
     session.commit()
 
-    context = get_context("How does voter registration work before polling day using EVM?", session)
+    context = get_context(
+        "How does voter registration work before polling day using EVM?",
+        session,
+    )
     lines = [line for line in context.split("\n") if line]
 
     assert len(lines) <= 5

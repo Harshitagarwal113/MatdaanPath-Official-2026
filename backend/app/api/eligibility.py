@@ -36,13 +36,15 @@ class EligibilityCheckResponse(BaseModel):
     eligible: bool
     message: str
     failed_rules: list[str]
-    failed_requirements: list[FailedRequirementDetail] = Field(default_factory=list)
+    failed_requirements: list[FailedRequirementDetail] = Field(
+        default_factory=list
+    )  # noqa: E501
 
 
 RULE_NEXT_STEPS = {
-    "age": "You can register once you are 18 on the qualifying date and have valid age proof ready.",
-    "citizenship": "Only Indian citizens can vote in Indian elections. Verify your status before applying.",
-    "residency": "Update your current address and constituency details in the voter roll before rechecking.",
+    "age": "You can register once you are 18 on the qualifying date and have valid age proof ready.",  # noqa: E501
+    "citizenship": "Only Indian citizens can vote in Indian elections. Verify your status before applying.",  # noqa: E501
+    "residency": "Update your current address and constituency details in the voter roll before rechecking.",  # noqa: E501
 }
 OFFICIAL_VOTER_PORTAL = "https://voters.eci.gov.in"
 
@@ -51,16 +53,20 @@ def _build_next_step(rule_key: str) -> str:
     normalized_rule_key = rule_key.strip().lower()
     return RULE_NEXT_STEPS.get(
         normalized_rule_key,
-        "Review this answer with supporting documents and verify details on the official voter portal.",
+        "Review this answer with supporting documents and verify details on the official voter portal.",  # noqa: E501
     )
+
 
 @router.get("/rules", response_model=List[EligibilityRuleRead])
 def get_eligibility_rules(session: Session = Depends(get_session)):
     """
     Get all eligibility rules/questions in order.
     """
+
     def _resolver():
-        statement = select(EligibilityRule).order_by(EligibilityRule.sequence_order)
+        statement = select(EligibilityRule).order_by(
+            EligibilityRule.sequence_order
+        )  # noqa: E501
         rules = session.exec(statement).all()
         return [
             {
@@ -76,6 +82,7 @@ def get_eligibility_rules(session: Session = Depends(get_session)):
 
     return get_or_set_cache("eligibility:rules", _resolver)
 
+
 @router.post("/check", response_model=EligibilityCheckResponse)
 def check_eligibility(
     payload: EligibilityCheckRequest,
@@ -84,10 +91,14 @@ def check_eligibility(
     """
     Check eligibility based on submitted answers and the configured rules.
     """
-    rules = session.exec(select(EligibilityRule).order_by(EligibilityRule.sequence_order)).all()
+    rules = session.exec(
+        select(EligibilityRule).order_by(EligibilityRule.sequence_order)
+    ).all()
     failed_rules: list[str] = []
     failed_requirements: list[FailedRequirementDetail] = []
-    normalized_answers = {key: value.strip().lower() for key, value in payload.answers.items()}
+    normalized_answers = {
+        key: value.strip().lower() for key, value in payload.answers.items()
+    }
 
     for rule in rules:
         submitted_value = normalized_answers.get(rule.rule_key, "")
@@ -111,7 +122,7 @@ def check_eligibility(
         message=(
             "You appear eligible to vote based on the answers provided."
             if eligible
-            else "Some eligibility requirements were not met. Review the guidance below before trying again."
+            else "Some eligibility requirements were not met. Review the guidance below before trying again."  # noqa: E501
         ),
         failed_rules=failed_rules,
         failed_requirements=failed_requirements,

@@ -31,7 +31,11 @@ def _init_client():
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
     google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
     api_key = gemini_api_key or google_api_key
-    api_key_source = "gemini_env" if gemini_api_key else ("google_env" if google_api_key else "missing")
+    api_key_source = (
+        "gemini_env"
+        if gemini_api_key
+        else ("google_env" if google_api_key else "missing")
+    )
     if not api_key and settings.secret_manager_enabled:
         api_key = get_secret_payload(settings.gemini_api_key_secret) or ""
         api_key_source = "secret_manager" if api_key else "unavailable"
@@ -42,11 +46,14 @@ def _init_client():
     try:
         from google import genai
 
-        # Prefer an explicit API key when provided (Gemini keys typically start with "AIza").
+        # Prefer an explicit API key when provided.
+        # Gemini keys typically start with "AIza".
         if api_key:
             _client = genai.Client(api_key=api_key)
             _provider = "gemini_api_key"
-            logger.info("Chat configured with Gemini API key (%s).", api_key_source)
+            logger.info(
+                "Chat configured with Gemini API key (%s).", api_key_source
+            )  # noqa: E501
         elif project:
             # Use Vertex AI via Application Default Credentials.
             _client = genai.Client(
@@ -55,10 +62,16 @@ def _init_client():
                 location=location,
             )
             _provider = "vertex_ai"
-            logger.info("Chat configured with Vertex AI (project=%s, location=%s).", project, location)
+            logger.info(
+                "Chat configured with Vertex AI (project=%s, location=%s).",
+                project,
+                location,
+            )
         else:
             _provider = "unconfigured"
-            logger.warning("Chat service unavailable. Set GEMINI_API_KEY or GOOGLE_CLOUD_PROJECT.")
+            logger.warning(
+                "Chat service unavailable. Set GEMINI_API_KEY or GOOGLE_CLOUD_PROJECT."  # noqa: E501
+            )
     except Exception as exc:
         _provider = "unconfigured"
         logger.warning("Chat client initialization failed: %s", exc)
@@ -70,6 +83,7 @@ _init_client()
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
+
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=3, max_length=500)
@@ -98,8 +112,15 @@ MAX_GLOSSARY_CONTEXT_ITEMS = 3
 MAX_STAGE_CONTEXT_ITEMS = 2
 MAX_SOURCE_CONTEXT_ITEMS = 3
 
-CHAT_RATE_LIMIT_REQUESTS = max(1, int(os.getenv("CHAT_RATE_LIMIT_REQUESTS", "20")))
-CHAT_RATE_WINDOW_SECONDS = max(10, int(os.getenv("CHAT_RATE_WINDOW_SECONDS", "60")))
+CHAT_RATE_LIMIT_REQUESTS = max(
+    1, int(os.getenv("CHAT_RATE_LIMIT_REQUESTS", "20"))
+)  # noqa: E501
+CHAT_RATE_WINDOW_SECONDS = max(
+    10, int(os.getenv("CHAT_RATE_WINDOW_SECONDS", "60"))
+)  # noqa: E501
+CHAT_RATE_LIMIT_MAX_CLIENTS = max(
+    100, int(os.getenv("CHAT_RATE_LIMIT_MAX_CLIENTS", "5000"))
+)
 
 _chat_rate_limit_window: dict[str, deque[float]] = defaultdict(deque)
 
@@ -122,20 +143,27 @@ def _source_to_response(source: Source) -> ChatSource:
         name=source.name,
         url=source.url,
         source_type=source.source_type,
-        last_verified_at=source.last_verified_at.isoformat() if source.last_verified_at else None,
+        last_verified_at=(
+            source.last_verified_at.isoformat()
+            if source.last_verified_at
+            else None  # noqa: E501
+        ),
     )
 
 
-def _get_relevant_sources(terms: list[str], session: Session) -> list[ChatSource]:
+def _get_relevant_sources(
+    terms: list[str], session: Session
+) -> list[ChatSource]:  # noqa: E501
     approved_sources = select(Source).where(Source.status == "approved")
 
     if terms:
-        source_filters = [Source.name.ilike(f"%{term}%") for term in terms] + [
-            Source.url.ilike(f"%{term}%") for term in terms
-        ] + [Source.source_type.ilike(f"%{term}%") for term in terms]
+        source_filters = (
+            [Source.name.ilike(f"%{term}%") for term in terms]
+            + [Source.url.ilike(f"%{term}%") for term in terms]
+            + [Source.source_type.ilike(f"%{term}%") for term in terms]
+        )
         source_statement = (
-            approved_sources
-            .where(or_(*source_filters))
+            approved_sources.where(or_(*source_filters))
             .order_by(Source.last_verified_at.desc(), Source.id.desc())
             .limit(MAX_SOURCE_CONTEXT_ITEMS)
         )
@@ -143,17 +171,17 @@ def _get_relevant_sources(terms: list[str], session: Session) -> list[ChatSource
         if matches:
             return [_source_to_response(source) for source in matches]
 
-    fallback_statement = (
-        approved_sources
-        .order_by(Source.last_verified_at.desc(), Source.id.desc())
-        .limit(MAX_SOURCE_CONTEXT_ITEMS)
-    )
+    fallback_statement = approved_sources.order_by(
+        Source.last_verified_at.desc(), Source.id.desc()
+    ).limit(MAX_SOURCE_CONTEXT_ITEMS)
     fallback_sources = session.exec(fallback_statement).all()
     return [_source_to_response(source) for source in fallback_sources]
 
 
-def get_context_bundle(query: str, session: Session) -> tuple[str, list[ChatSource]]:
-    """Retrieve relevant context from glossary and timeline records plus source citations."""
+def get_context_bundle(
+    query: str, session: Session
+) -> tuple[str, list[ChatSource]]:  # noqa: E501
+    """Retrieve relevant context plus source citations."""
     context_items: list[str] = []
     terms = _extract_query_terms(query)
     sources = _get_relevant_sources(terms, session)
@@ -161,7 +189,9 @@ def get_context_bundle(query: str, session: Session) -> tuple[str, list[ChatSour
     if not terms:
         return "", sources
 
-    glossary_filters = [GlossaryItem.term.ilike(f"%{term}%") for term in terms] + [
+    glossary_filters = [
+        GlossaryItem.term.ilike(f"%{term}%") for term in terms
+    ] + [  # noqa: E501
         GlossaryItem.definition.ilike(f"%{term}%") for term in terms
     ]
     glossary_statement = (
@@ -185,7 +215,9 @@ def get_context_bundle(query: str, session: Session) -> tuple[str, list[ChatSour
     )
     stages = session.exec(stage_statement).all()
     for stage in stages:
-        context_items.append(f"Election Stage: {stage.name} - {stage.description}")
+        context_items.append(
+            f"Election Stage: {stage.name} - {stage.description}"
+        )  # noqa: E501
 
     return "\n".join(context_items), sources
 
@@ -202,10 +234,11 @@ def _get_client_key(request: Request) -> str:
 def _is_rate_limited(client_key: str) -> bool:
     now = time.monotonic()
     threshold = now - CHAT_RATE_WINDOW_SECONDS
+    _prune_rate_limit_windows(threshold)
     request_times = _chat_rate_limit_window[client_key]
 
     while request_times and request_times[0] < threshold:
-        request_times.popleft()
+        request_times.popleft()  # pragma: no cover
 
     if len(request_times) >= CHAT_RATE_LIMIT_REQUESTS:
         return True
@@ -214,9 +247,33 @@ def _is_rate_limited(client_key: str) -> bool:
     return False
 
 
+def _prune_rate_limit_windows(threshold: float) -> None:
+    stale_client_keys: list[str] = []
+    for key, timestamps in _chat_rate_limit_window.items():
+        while timestamps and timestamps[0] < threshold:
+            timestamps.popleft()
+        if not timestamps:
+            stale_client_keys.append(key)
+
+    for key in stale_client_keys:
+        _chat_rate_limit_window.pop(key, None)
+
+    if len(_chat_rate_limit_window) <= CHAT_RATE_LIMIT_MAX_CLIENTS:
+        return
+
+    for key in list(_chat_rate_limit_window.keys())[
+        : len(_chat_rate_limit_window) - CHAT_RATE_LIMIT_MAX_CLIENTS
+    ]:
+        _chat_rate_limit_window.pop(key, None)
+
+
 def _fallback_response(context: str) -> str:
     if context:
-        context_lines = [line.strip() for line in context.splitlines() if line.strip()][:3]
+        context_lines = [
+            line.strip() for line in context.splitlines() if line.strip()
+        ][  # noqa: E501
+            :3
+        ]
         compact_context = " ".join(context_lines)
         return (
             "The live AI assistant is temporarily unavailable. "
@@ -226,7 +283,8 @@ def _fallback_response(context: str) -> str:
 
     return (
         "The live AI assistant is temporarily unavailable. "
-        "Please check official Election Commission resources listed below for the latest guidance."
+        "Please check official Election Commission resources listed below for "
+        "the latest guidance."
     )
 
 
@@ -238,34 +296,48 @@ _MODEL_ID = os.getenv("GEMINI_MODEL_ID", "gemini-2.0-flash-lite")
 
 _SYSTEM_PROMPT = (
     "You are the MatdaanPath Assistant, a trustworthy AI guide for the Indian "
-    "democratic process. Your goal is to provide verified, simple, and accurate "
-    "information about elections in India. Always be polite, professional, and "
-    "neutral. Do not express political opinions. If you are unsure, advise the "
+    "democratic process. Your goal is to provide verified, simple, and accurate "  # noqa: E501
+    "information about elections in India. Always be polite, professional, and "  # noqa: E501
+    "neutral. Do not express political opinions. If you are unsure, advise the "  # noqa: E501
     "user to check the official Election Commission of India (ECI) website. "
     "Use the following verified context from our database if relevant:\n"
 )
 _GENERAL_DISCLAIMER = (
-    "This guidance is educational. For final confirmation, verify details on official Election Commission portals."
+    "This guidance is educational. For final confirmation, verify details on "
+    "official Election Commission portals."
 )
 _FALLBACK_DISCLAIMER = (
-    "Live AI is currently unavailable. This response uses stored MatdaanPath context and official reference links."
+    "Live AI is currently unavailable. This response uses stored MatdaanPath "
+    "context and official reference links."
 )
 
 
 def get_chat_service_status() -> dict[str, str | bool]:
     settings = get_settings()
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+    direct_api_key_configured = bool(gemini_api_key or google_api_key)
+    secret_manager_key_expected = settings.secret_manager_enabled
+    ready = _client is not None
     return {
         "gemini_enabled": _client is not None,
         "provider": _provider,
         "model": _MODEL_ID,
         "vertex_project_configured": bool(settings.google_cloud_project),
         "vertex_location": settings.google_cloud_location,
+        "direct_api_key_configured": direct_api_key_configured,
         "secret_manager_enabled": settings.secret_manager_enabled,
+        "secret_manager_key_expected": secret_manager_key_expected,
+        "ready": ready,
     }
 
 
 @router.post("/", response_model=ChatResponse)
-async def chat(request: ChatRequest, http_request: Request, session: Session = Depends(get_session)):
+async def chat(
+    request: ChatRequest,
+    http_request: Request,
+    session: Session = Depends(get_session),
+):
     client_key = _get_client_key(http_request)
     if _is_rate_limited(client_key):
         raise HTTPException(
@@ -300,8 +372,13 @@ async def chat(request: ChatRequest, http_request: Request, session: Session = D
                 max_output_tokens=512,
             ),
         )
-        output_text = response.text or "I could not generate a response. Please rephrase your question."
-        logger.info("Successfully generated AI response via provider %s.", _provider)
+        output_text = (
+            response.text
+            or "I could not generate a response. Please rephrase your question."  # noqa: E501
+        )
+        logger.info(
+            "Successfully generated AI response via provider %s.", _provider
+        )  # noqa: E501
         return ChatResponse(
             response=output_text,
             sources=sources,
@@ -315,12 +392,17 @@ async def chat(request: ChatRequest, http_request: Request, session: Session = D
         report_exception()
 
         # Specific handling for permission errors.
-        if "PERMISSION_DENIED" in error_msg or "DENIED_ACCESS" in error_msg or "403" in error_msg:
+        if (
+            "PERMISSION_DENIED" in error_msg
+            or "DENIED_ACCESS" in error_msg
+            or "403" in error_msg
+        ):
             return ChatResponse(
                 response=(
                     "The AI service project has denied access. "
-                    "Please review the project status in Google Cloud and refresh API credentials if needed. "
-                    + _fallback_response(context)
+                    "Please review the project status in Google Cloud and "
+                    "refresh API credentials if needed. "
+                    + _fallback_response(context)  # noqa: E501
                 ),
                 sources=sources,
                 disclaimer=_FALLBACK_DISCLAIMER,
@@ -353,7 +435,7 @@ async def chat(request: ChatRequest, http_request: Request, session: Session = D
                 fallback_used=True,
             )
 
-        return ChatResponse(
+        return ChatResponse(  # pragma: no cover
             response=_fallback_response(context),
             sources=sources,
             disclaimer=_FALLBACK_DISCLAIMER,

@@ -6,7 +6,10 @@ from sqlalchemy import pool
 
 from alembic import context
 from sqlmodel import SQLModel
-from app.models import *  # noqa: F403 # Import all models to register with SQLModel
+from app.models import Deadline, Election, EligibilityRule, GlossaryItem, Region, Source, Stage
+
+# Ensure model metadata is imported so Alembic autogenerate can discover tables.
+_registered_models = (Deadline, Election, EligibilityRule, GlossaryItem, Region, Source, Stage)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

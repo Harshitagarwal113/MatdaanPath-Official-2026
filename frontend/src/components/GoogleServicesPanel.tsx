@@ -40,11 +40,11 @@ export default function GoogleServicesPanel() {
   const serviceCards: ServiceCard[] = [
     {
       title: "Gemini Assistant",
-      description: backendStatus?.gemini.gemini_enabled
+      description: backendStatus?.gemini.ready
         ? `Connected via ${backendStatus.gemini.provider} (${backendStatus.gemini.model}).`
         : "Not configured yet. Set GEMINI_API_KEY or Vertex AI credentials.",
       icon: BrainCircuit,
-      isReady: backendStatus?.gemini.gemini_enabled ?? false,
+      isReady: backendStatus?.gemini.ready ?? false,
     },
     {
       title: "Firebase Analytics",
@@ -72,27 +72,27 @@ export default function GoogleServicesPanel() {
     },
     {
       title: "Firebase Auth",
-      description: backendStatus?.firebase_auth.enabled
+      description: backendStatus?.firebase_auth.ready
         ? "ID token verification is active for secured endpoints."
         : "Configure FIREBASE_PROJECT_ID or service account credentials for token verification.",
       icon: ShieldCheck,
-      isReady: backendStatus?.firebase_auth.enabled ?? false,
+      isReady: backendStatus?.firebase_auth.ready ?? false,
     },
     {
       title: "Cloud Tasks Reminders",
-      description: backendStatus?.cloud_tasks.enabled
+      description: backendStatus?.cloud_tasks.ready
         ? `Queue ${backendStatus.cloud_tasks.queue_id} is configured for reminder delivery.`
         : "Cloud Tasks is not configured. Reminder requests use local fallback queue.",
       icon: BellRing,
-      isReady: backendStatus?.cloud_tasks.enabled ?? false,
+      isReady: backendStatus?.cloud_tasks.ready ?? false,
     },
     {
       title: "Secret Manager",
-      description: backendStatus?.secret_manager.enabled
+      description: backendStatus?.secret_manager.ready
         ? "Runtime secrets are available for protected configuration values."
         : "Set GEMINI_API_KEY_SECRET and GOOGLE_CLOUD_PROJECT to load secrets at runtime.",
       icon: KeyRound,
-      isReady: backendStatus?.secret_manager.enabled ?? false,
+      isReady: backendStatus?.secret_manager.ready ?? false,
     },
   ];
 
@@ -195,6 +195,12 @@ export default function GoogleServicesPanel() {
           ? "Refreshing service status..."
           : "Service indicators update from runtime configuration and observability health."}
       </p>
+
+      {!isLoading && backendStatus && !backendStatus.ready_for_cloud_run ? (
+        <div className="inline-alert" role="alert" style={{ marginTop: "0.75rem" }}>
+          {backendStatus.blocking_issues[0] ?? "Google services still have deployment blockers."}
+        </div>
+      ) : null}
 
       {backendStatus?.admin_auth.allow_insecure_admin ? (
         <p className="panel-note" style={{ marginTop: "0.5rem", color: "#92400e" }}>

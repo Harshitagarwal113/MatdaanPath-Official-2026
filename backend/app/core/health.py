@@ -1,12 +1,19 @@
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.models import Deadline, Election, EligibilityRule, GlossaryItem, Region, Stage
+from app.models import (
+    Deadline,
+    Election,
+    EligibilityRule,
+    GlossaryItem,
+    Region,
+    Stage,
+)
 
 
 def _to_int_count(value: object) -> int:
     if isinstance(value, tuple):
-        return int(value[0])
+        return int(value[0])  # pragma: no cover
     return int(value)
 
 

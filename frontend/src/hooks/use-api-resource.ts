@@ -132,3 +132,9 @@ export function useApiResource<T>(
     refresh,
   };
 }
+
+export function resetApiResourceCacheForTests(): void {
+  if (process.env.NODE_ENV === "test") {
+    resourceCache.clear();
+  }
+}

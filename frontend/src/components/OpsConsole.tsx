@@ -210,9 +210,9 @@ export default function OpsConsole() {
       <div style={{ padding: "1rem", borderRadius: "12px", border: "1px solid var(--border-standard)", background: "#f8fafc" }}>
         <h3 style={{ marginTop: 0, marginBottom: "0.5rem", fontSize: "1rem" }}>Runtime service checks</h3>
         <p className="panel-note" style={{ margin: 0 }}>
-          Firebase Auth: {serviceStatus?.firebase_auth.enabled ? "Enabled" : "Not enabled"} | Cloud Tasks:{" "}
-          {serviceStatus?.cloud_tasks.enabled ? "Configured" : "Fallback"} | Secret Manager:{" "}
-          {serviceStatus?.secret_manager.enabled ? "Configured" : "Not configured"}
+          Firebase Auth: {serviceStatus?.firebase_auth.ready ? "Ready" : "Not ready"} | Cloud Tasks:{" "}
+          {serviceStatus?.cloud_tasks.ready ? "Ready" : "Fallback"} | Secret Manager:{" "}
+          {serviceStatus?.secret_manager.ready ? "Ready" : "Not ready"}
         </p>
       </div>
 

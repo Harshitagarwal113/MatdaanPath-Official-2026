@@ -15,32 +15,44 @@ export type GoogleServicesStatus = {
   google_cloud_project: string | null;
   cloud_run_service: string | null;
   cloud_run_revision: string | null;
+  deployment_mode: "local" | "cloud_run";
+  ready_for_cloud_run: boolean;
+  blocking_issues: string[];
   observability: {
     cloud_logging_enabled: boolean;
     error_reporting_enabled: boolean;
   };
   gemini: {
     gemini_enabled: boolean;
+    ready: boolean;
     provider: string;
     model: string;
     vertex_project_configured: boolean;
     vertex_location: string;
+    direct_api_key_configured?: boolean;
     secret_manager_enabled?: boolean;
+    secret_manager_key_expected?: boolean;
   };
   firebase_auth: {
     enabled: boolean;
+    ready: boolean;
+    sdk_available: boolean;
     project_id_configured: boolean;
   };
   cloud_tasks: {
-    enabled: boolean;
+    configured: boolean;
+    sdk_available: boolean;
+    client_available: boolean;
+    ready: boolean;
     queue_id: string;
     target_url_configured: boolean;
     verification_token_configured?: boolean;
     local_fallback_queue_size: number;
   };
   secret_manager: {
-    enabled: boolean;
-    gemini_secret_configured: boolean;
+    configured: boolean;
+    sdk_available: boolean;
+    ready: boolean;
   };
   admin_auth: {
     configured: boolean;

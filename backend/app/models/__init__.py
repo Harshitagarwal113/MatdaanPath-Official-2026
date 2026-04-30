@@ -1,18 +1,23 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
 
 # --- Shared Models ---
+
 
 class Source(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     url: str
     source_type: str
-    last_verified_at: datetime = Field(default_factory=datetime.utcnow)
+    last_verified_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC)
+    )  # noqa: E501
     status: str = Field(default="approved")
 
+
 # --- Region & Election Models ---
+
 
 class Region(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -21,28 +26,39 @@ class Region(SQLModel, table=True):
     country: str = Field(default="India")
     description: Optional[str] = None
 
+
 class Election(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
-    region_id: Optional[int] = Field(default=None, foreign_key="region.id", index=True)
+    region_id: Optional[int] = Field(
+        default=None, foreign_key="region.id", index=True
+    )  # noqa: E501
     election_type: str  # e.g., Lok Sabha, Vidhan Sabha
     year: int = Field(index=True)
 
+
 class Stage(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    election_id: Optional[int] = Field(default=None, foreign_key="election.id", index=True)
+    election_id: Optional[int] = Field(
+        default=None, foreign_key="election.id", index=True
+    )
     name: str
     description: str
     sequence_order: int = Field(index=True)
 
+
 class Deadline(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    election_id: Optional[int] = Field(default=None, foreign_key="election.id", index=True)
+    election_id: Optional[int] = Field(
+        default=None, foreign_key="election.id", index=True
+    )
     name: str
     date: datetime = Field(index=True)
     description: Optional[str] = None
 
+
 # --- MVP Feature Models ---
+
 
 class GlossaryItem(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -50,6 +66,7 @@ class GlossaryItem(SQLModel, table=True):
     definition: str
     example: Optional[str] = None
     category: str = Field(default="General")
+
 
 class EligibilityRule(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
