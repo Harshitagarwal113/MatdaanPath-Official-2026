@@ -35,7 +35,7 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────
 # Stage 2 – Production image (Python + nginx + supervisor)
 # ─────────────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM python:3.11
 
 # Fix gRPC for containerized environments
 ENV GRPC_POLL_STRATEGY=poll
