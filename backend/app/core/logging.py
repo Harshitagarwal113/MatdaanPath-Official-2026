@@ -1,80 +1,115 @@
 import atexit
 import logging
 import os
+import threading
 
-from google.cloud import logging as cloud_logging
-from google.cloud import error_reporting
 
 _error_client = None
 _cloud_logging_client = None
 
 
+def _init_cloud_logging(project_id):  # pragma: no cover
+    """Attempt Cloud Logging init in a separate thread."""
+    global _cloud_logging_client, _error_client
+    try:
+        from google.cloud import logging as cloud_logging
+        from google.cloud import error_reporting
+
+        client = cloud_logging.Client(project=project_id)
+        client.setup_logging(log_level=logging.INFO)
+        _cloud_logging_client = client
+        atexit.register(client.close)
+
+        error_client = error_reporting.Client(
+            project=project_id
+        )
+        _error_client = error_client
+
+        logging.info(
+            "Cloud Logging initialized for project %s",
+            project_id,
+        )
+    except Exception as e:
+        msg = str(e)
+        if "permission" in msg.lower() or "403" in msg:
+            logging.warning(
+                "Cloud Logging permission denied for"
+                " project %s. Using local logging.",
+                project_id,
+            )
+        else:
+            logging.warning(
+                "Cloud Logging init failed (%s)."
+                " Using standard local logging.",
+                e,
+            )
+
+
 def setup_logging():
-    """Initializes Google Cloud Logging and integrates with Python logging."""
+    """Initializes logging. Cloud Logging uses a timeout."""
     global _cloud_logging_client, _error_client
 
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-    is_testing = os.getenv("TESTING", "false").lower() == "true"
+    is_testing = (
+        os.getenv("TESTING", "false").lower() == "true"
+    )
     disable_cloud_logging = (
-        os.getenv("DISABLE_CLOUD_LOGGING", "false").lower() == "true"
+        os.getenv(
+            "DISABLE_CLOUD_LOGGING", "false"
+        ).lower()
+        == "true"
     )
 
-    if project_id and not is_testing and not disable_cloud_logging:
-        try:  # pragma: no cover
-            # Initialize Google Cloud Logging client  # pragma: no cover
-            client = cloud_logging.Client(
-                project=project_id
-            )  # pragma: no cover  # noqa: E501
-            # pragma: no cover
-            # Setup standard Python logging integration  # pragma: no cover
-            client.setup_logging(log_level=logging.INFO)  # pragma: no cover
-            _cloud_logging_client = client  # pragma: no cover
-            atexit.register(client.close)  # pragma: no cover
-            # pragma: no cover
-            # Initialize Error Reporting  # pragma: no cover
-            error_client = error_reporting.Client(
-                project=project_id
-            )  # pragma: no cover
-            _error_client = error_client  # pragma: no cover
-            # pragma: no cover
-            logging.info(  # pragma: no cover
-                "Cloud Logging initialized for project %s",
-                project_id,  # pragma: no cover
-            )  # pragma: no cover
-            return error_client  # pragma: no cover
-        except Exception as e:  # pragma: no cover
-            # Fallback to local logging  # pragma: no cover
-            logging.basicConfig(  # pragma: no cover
-                level=logging.INFO,  # pragma: no cover
-                format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # pragma: no cover  # noqa: E501
-                force=True,  # pragma: no cover
-            )  # pragma: no cover
-            msg = str(e)  # pragma: no cover
-            if "permission" in msg.lower() or "403" in msg:  # pragma: no cover
-                logging.warning(  # pragma: no cover
-                    "Cloud Logging permission denied for project %s. Using local logging.",  # noqa: E501  # pragma: no cover
-                    project_id,  # pragma: no cover
-                )  # pragma: no cover
-            else:  # pragma: no cover
-                logging.warning(  # pragma: no cover
-                    "Cloud Logging init failed (%s). Using standard local logging.",  # noqa: E501  # pragma: no cover
-                    e,  # pragma: no cover
-                )  # pragma: no cover
-            return None  # pragma: no cover
+    # Always set up basic logging first so the app works
+    logging.basicConfig(level=logging.INFO, force=True)
+
+    if (
+        project_id
+        and not is_testing
+        and not disable_cloud_logging
+    ):
+        # Run Cloud Logging init in a thread with timeout
+        # so it never blocks app startup.
+        init_thread = threading.Thread(
+            target=_init_cloud_logging,
+            args=(project_id,),
+            daemon=True,
+        )
+        init_thread.start()
+        init_thread.join(timeout=10)  # pragma: no cover
+
+        if init_thread.is_alive():  # pragma: no cover
+            logging.warning(
+                "Cloud Logging init timed out for"
+                " project %s. Using local logging.",
+                project_id,
+            )
+        elif (  # pragma: no cover
+            _cloud_logging_client is None
+        ):
+            logging.warning(  # pragma: no cover
+                "Cloud Logging init failed for"
+                " project %s. Using local logging.",
+                project_id,
+            )
     else:
-        # Fallback to standard local logging
-        logging.basicConfig(level=logging.INFO, force=True)
         if is_testing:
-            logging.info("Testing mode active. Using standard local logging.")
-        elif disable_cloud_logging:  # pragma: no cover
             logging.info(
-                "Cloud Logging disabled by environment variable."
-            )  # pragma: no cover
+                "Testing mode active."
+                " Using standard local logging."
+            )
+        elif disable_cloud_logging:  # pragma: no cover
+            logging.info(  # pragma: no cover
+                "Cloud Logging disabled by"
+                " environment variable."
+            )
         else:  # pragma: no cover
             logging.warning(  # pragma: no cover
-                "GOOGLE_CLOUD_PROJECT not set. Using standard local logging."
+                "GOOGLE_CLOUD_PROJECT not set."
+                " Using standard local logging."
             )
-        return None
+
+    return _error_client
 
 
 def report_exception() -> None:
@@ -83,7 +118,8 @@ def report_exception() -> None:
             _error_client.report_exception()  # pragma: no cover
         except Exception as exc:  # pragma: no cover
             logging.warning(  # pragma: no cover
-                "Failed to report exception to Google Cloud Error Reporting: %s",  # noqa: E501
+                "Failed to report exception to"
+                " Google Cloud Error Reporting: %s",
                 exc,
             )
 
