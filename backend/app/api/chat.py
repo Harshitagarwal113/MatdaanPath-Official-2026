@@ -1,3 +1,7 @@
+"""
+AI Chat API implementation for MatdaanPath.
+Handles context retrieval, rate limiting, and interaction with Gemini/Vertex AI.
+"""
 import os
 import time
 from collections import defaultdict, deque
@@ -25,6 +29,7 @@ _provider = "unconfigured"
 
 
 def _init_client():
+    """Initialise the Gemini/Vertex AI client based on environment configuration."""
     global _client, _provider
 
     settings = get_settings()
@@ -53,7 +58,7 @@ def _init_client():
             _provider = "gemini_api_key"
             logger.info(
                 "Chat configured with Gemini API key (%s).", api_key_source
-            )  # noqa: E501
+            )
         elif project:
             # Use Vertex AI via Application Default Credentials.
             _client = genai.Client(
@@ -70,7 +75,7 @@ def _init_client():
         else:
             _provider = "unconfigured"
             logger.warning(
-                "Chat service unavailable. Set GEMINI_API_KEY or GOOGLE_CLOUD_PROJECT."  # noqa: E501
+                "Chat service unavailable. Set GEMINI_API_KEY or GOOGLE_CLOUD_PROJECT."
             )
     except Exception as exc:
         _provider = "unconfigured"
@@ -84,10 +89,12 @@ def _init_client():
 
 
 class ChatRequest(BaseModel):
+    """Schema for incoming chat messages."""
     message: str = Field(..., min_length=3, max_length=500)
 
 
 class ChatSource(BaseModel):
+    """Schema for source citations included in chat responses."""
     name: str
     url: str
     source_type: str
@@ -95,6 +102,7 @@ class ChatSource(BaseModel):
 
 
 class ChatResponse(BaseModel):
+    """Schema for outgoing chat responses."""
     response: str
     sources: list[ChatSource] = Field(default_factory=list)
     disclaimer: str | None = None
@@ -112,10 +120,10 @@ MAX_SOURCE_CONTEXT_ITEMS = 3
 
 CHAT_RATE_LIMIT_REQUESTS = max(
     1, int(os.getenv("CHAT_RATE_LIMIT_REQUESTS", "20"))
-)  # noqa: E501
+)
 CHAT_RATE_WINDOW_SECONDS = max(
     10, int(os.getenv("CHAT_RATE_WINDOW_SECONDS", "60"))
-)  # noqa: E501
+)
 CHAT_RATE_LIMIT_MAX_CLIENTS = max(
     100, int(os.getenv("CHAT_RATE_LIMIT_MAX_CLIENTS", "5000"))
 )
@@ -124,6 +132,7 @@ _chat_rate_limit_window: dict[str, deque[float]] = defaultdict(deque)
 
 
 def _extract_query_terms(query: str) -> list[str]:
+    """Extract and clean search terms from a user query."""
     terms: list[str] = []
     for raw_word in query.split():
         cleaned = raw_word.strip(".,!?;:\"'()[]{}").lower()
@@ -137,6 +146,7 @@ def _extract_query_terms(query: str) -> list[str]:
 
 
 def _source_to_response(source: Source) -> ChatSource:
+    """Convert a database Source model to a ChatSource response schema."""
     return ChatSource(
         name=source.name,
         url=source.url,
@@ -144,14 +154,15 @@ def _source_to_response(source: Source) -> ChatSource:
         last_verified_at=(
             source.last_verified_at.isoformat()
             if source.last_verified_at
-            else None  # noqa: E501
+            else None
         ),
     )
 
 
 def _get_relevant_sources(
     terms: list[str], session: Session
-) -> list[ChatSource]:  # noqa: E501
+) -> list[ChatSource]:
+    """Find the most relevant verified sources based on query terms."""
     approved_sources = select(Source).where(Source.status == "approved")
 
     if terms:
@@ -178,8 +189,8 @@ def _get_relevant_sources(
 
 def get_context_bundle(
     query: str, session: Session
-) -> tuple[str, list[ChatSource]]:  # noqa: E501
-    """Retrieve relevant context plus source citations."""
+) -> tuple[str, list[ChatSource]]:
+    """Retrieve relevant context plus source citations for an AI query."""
     context_items: list[str] = []
     terms = _extract_query_terms(query)
     sources = _get_relevant_sources(terms, session)
@@ -189,7 +200,7 @@ def get_context_bundle(
 
     glossary_filters = [
         GlossaryItem.term.ilike(f"%{term}%") for term in terms
-    ] + [  # noqa: E501
+    ] + [
         GlossaryItem.definition.ilike(f"%{term}%") for term in terms
     ]
     glossary_statement = (
@@ -215,21 +226,24 @@ def get_context_bundle(
     for stage in stages:
         context_items.append(
             f"Election Stage: {stage.name} - {stage.description}"
-        )  # noqa: E501
+        )
 
     return "\n".join(context_items), sources
 
 
 def get_context(query: str, session: Session) -> str:
+    """Retrieve raw context text for a query."""
     context, _ = get_context_bundle(query, session)
     return context
 
 
 def _get_client_key(request: Request) -> str:
+    """Extract a unique key for rate limiting from a request."""
     return request.client.host if request.client else "anonymous"
 
 
 def _is_rate_limited(client_key: str) -> bool:
+    """Check if a client has exceeded the chat rate limit."""
     now = time.monotonic()
     threshold = now - CHAT_RATE_WINDOW_SECONDS
     _prune_rate_limit_windows(threshold)
@@ -246,6 +260,7 @@ def _is_rate_limited(client_key: str) -> bool:
 
 
 def _prune_rate_limit_windows(threshold: float) -> None:
+    """Clean up stale rate limiting windows to manage memory."""
     stale_client_keys: list[str] = []
     for key, timestamps in _chat_rate_limit_window.items():
         while timestamps and timestamps[0] < threshold:
@@ -266,10 +281,11 @@ def _prune_rate_limit_windows(threshold: float) -> None:
 
 
 def _fallback_response(context: str) -> str:
+    """Generate a useful response when the AI service is unavailable."""
     if context:
         context_lines = [
             line.strip() for line in context.splitlines() if line.strip()
-        ][  # noqa: E501
+        ][
             :3
         ]
         compact_context = " ".join(context_lines)
@@ -294,9 +310,9 @@ _MODEL_ID = os.getenv("GEMINI_MODEL_ID", "gemini-2.0-flash-lite")
 
 _SYSTEM_PROMPT = (
     "You are the MatdaanPath Assistant, a trustworthy AI guide for the Indian "
-    "democratic process. Your goal is to provide verified, simple, and accurate "  # noqa: E501
-    "information about elections in India. Always be polite, professional, and "  # noqa: E501
-    "neutral. Do not express political opinions. If you are unsure, advise the "  # noqa: E501
+    "democratic process. Your goal is to provide verified, simple, and accurate "
+    "information about elections in India. Always be polite, professional, and "
+    "neutral. Do not express political opinions. If you are unsure, advise the "
     "user to check the official Election Commission of India (ECI) website. "
     "Use the following verified context from our database if relevant:\n"
 )
@@ -311,6 +327,7 @@ _FALLBACK_DISCLAIMER = (
 
 
 def get_chat_service_status() -> dict[str, str | bool]:
+    """Retrieve the current health and configuration status of the AI chat service."""
     if _provider == "unconfigured":
         _init_client()
 
@@ -339,6 +356,7 @@ async def chat(
     http_request: Request,
     session: Session = Depends(get_session),
 ):
+    """Entry point for user chat messages."""
     client_key = _get_client_key(http_request)
     if _is_rate_limited(client_key):
         raise HTTPException(
@@ -378,11 +396,11 @@ async def chat(
         )
         output_text = (
             response.text
-            or "I could not generate a response. Please rephrase your question."  # noqa: E501
+            or "I could not generate a response. Please rephrase your question."
         )
         logger.info(
             "Successfully generated AI response via provider %s.", _provider
-        )  # noqa: E501
+        )
         return ChatResponse(
             response=output_text,
             sources=sources,
@@ -406,7 +424,7 @@ async def chat(
                     "The AI service project has denied access. "
                     "Please review the project status in Google Cloud and "
                     "refresh API credentials if needed. "
-                    + _fallback_response(context)  # noqa: E501
+                    + _fallback_response(context)
                 ),
                 sources=sources,
                 disclaimer=_FALLBACK_DISCLAIMER,

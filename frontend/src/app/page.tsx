@@ -167,9 +167,10 @@ export default function Home() {
         </div>
       </nav>
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <section
           className="hero-modern"
+          aria-labelledby="hero-heading"
           style={{
             padding: "8rem 0 6rem",
             background: "radial-gradient(circle at 50% -20%, #f1f5f9 0%, transparent 60%)",
@@ -194,7 +195,7 @@ export default function Home() {
               >
                 Your Democracy, Simplified
               </span>
-              <h1 className="hero-title" style={{ marginBottom: "0.5rem" }}>
+              <h1 id="hero-heading" className="hero-title" style={{ marginBottom: "0.5rem" }}>
                 MatdaanPath
               </h1>
               <p

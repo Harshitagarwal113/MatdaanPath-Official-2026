@@ -1,3 +1,7 @@
+"""
+Main entry point for the MatdaanPath API.
+Configures FastAPI application, middlewares, and routers.
+"""
 import os
 from contextlib import asynccontextmanager
 
@@ -27,16 +31,12 @@ from app.core.logging import (
 
 load_dotenv(override=True)
 
-import faulthandler
-faulthandler.enable()
-import sys
-faulthandler.dump_traceback_later(10, repeat=True, file=sys.stderr)
-
-# setup_logging()
+setup_logging()
 logger = get_logger("matdaanpath")
 
 
 def _get_allowed_origins() -> list[str]:
+    """Retrieve allowed CORS origins from environment or defaults."""
     configured_origins = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
     if configured_origins:
         return [
@@ -51,6 +51,7 @@ def _get_allowed_origins() -> list[str]:
 
 
 def _cache_control_for_path(path: str) -> str:
+    """Determine the appropriate Cache-Control header value for a given API path."""
     if path.startswith("/api/chat") or path.startswith("/health"):
         return "no-store"
     if path.startswith("/api/google-services/status"):
@@ -61,6 +62,7 @@ def _cache_control_for_path(path: str) -> str:
 
 
 class ApiCacheControlMiddleware(BaseHTTPMiddleware):
+    """Middleware to inject Cache-Control headers into API responses."""
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
         if request.method != "GET":
@@ -74,6 +76,7 @@ class ApiCacheControlMiddleware(BaseHTTPMiddleware):
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware to inject security-related HTTP headers into every response."""
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -105,6 +108,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    """Manage application startup and shutdown events."""
     logger.info("MatdaanPath API starting up...")
     yield
 
@@ -148,22 +152,25 @@ app.include_router(admin_router, prefix="/api/admin", tags=["Admin"])
 
 @app.get("/")
 def read_root():
+    """Simple root endpoint for API discovery."""
     return {"message": "Welcome to MatdaanPath API"}
 
 
 @app.get("/health")
 def health_check():
+    """Basic health check endpoint for container orchestrators."""
     return {"status": "healthy"}
 
 
 @app.get("/health/detailed")
 def detailed_health_check(session: Session = Depends(get_session)):
+    """Comprehensive health check including database connectivity and data seeding status."""
     try:
         table_counts = get_table_counts(session)
     except Exception as exc:
         logger.exception("Health check failed while counting tables: %s", exc)
         raise HTTPException(
-            status_code=503, detail="Database health check failed."
+          status_code=503, detail="Database health check failed."
         )  # noqa: E501
 
     is_data_seeded = all(

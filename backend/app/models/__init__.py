@@ -1,3 +1,7 @@
+"""
+Database model definitions for MatdaanPath using SQLModel.
+Includes definitions for Regions, Elections, Stages, Deadlines, and more.
+"""
 from datetime import UTC, datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
@@ -6,13 +10,14 @@ from sqlmodel import SQLModel, Field
 
 
 class Source(SQLModel, table=True):
+    """Reference sources for election information, including ECI portals."""
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     url: str
     source_type: str
     last_verified_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC)
-    )  # noqa: E501
+    )
     status: str = Field(default="approved")
 
 
@@ -20,6 +25,7 @@ class Source(SQLModel, table=True):
 
 
 class Region(SQLModel, table=True):
+    """Geographic regions for elections (e.g., National, State, District)."""
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     code: str = Field(index=True, min_length=2, max_length=10)
@@ -28,16 +34,18 @@ class Region(SQLModel, table=True):
 
 
 class Election(SQLModel, table=True):
+    """Specific election events (e.g., Lok Sabha 2024)."""
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     region_id: Optional[int] = Field(
         default=None, foreign_key="region.id", index=True
-    )  # noqa: E501
+    )
     election_type: str  # e.g., Lok Sabha, Vidhan Sabha
     year: int = Field(index=True)
 
 
 class Stage(SQLModel, table=True):
+    """Sequential stages of an election process."""
     id: Optional[int] = Field(default=None, primary_key=True)
     election_id: Optional[int] = Field(
         default=None, foreign_key="election.id", index=True
@@ -48,6 +56,7 @@ class Stage(SQLModel, table=True):
 
 
 class Deadline(SQLModel, table=True):
+    """Critical dates and deadlines for voters and candidates."""
     id: Optional[int] = Field(default=None, primary_key=True)
     election_id: Optional[int] = Field(
         default=None, foreign_key="election.id", index=True
@@ -61,6 +70,7 @@ class Deadline(SQLModel, table=True):
 
 
 class GlossaryItem(SQLModel, table=True):
+    """Key election terms and their simplified definitions."""
     id: Optional[int] = Field(default=None, primary_key=True)
     term: str = Field(index=True)
     definition: str
@@ -69,6 +79,7 @@ class GlossaryItem(SQLModel, table=True):
 
 
 class EligibilityRule(SQLModel, table=True):
+    """Rules for determining voter eligibility."""
     id: Optional[int] = Field(default=None, primary_key=True)
     question: str
     rule_key: str = Field(index=True)  # e.g., "age_check", "residency_check"

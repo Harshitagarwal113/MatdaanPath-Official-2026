@@ -1,3 +1,7 @@
+"""
+API implementation for monitoring and status checks of Google Cloud Services.
+Validates connectivity and configuration for Gemini, Firebase, Cloud Tasks, etc.
+"""
 import os
 from datetime import datetime, timezone
 
@@ -17,6 +21,7 @@ router = APIRouter()
 
 
 class GoogleServicesStatusResponse(BaseModel):
+    """Schema for the comprehensive Google Cloud services status report."""
     google_cloud_project: str | None
     cloud_run_service: str | None
     cloud_run_revision: str | None
@@ -40,36 +45,37 @@ def _compute_blocking_issues(
     secret_status: dict[str, bool],
     observability_status: dict[str, bool],
 ) -> list[str]:
+    """Analyze service statuses to identify issues that prevent stable deployment."""
     issues: list[str] = []
 
     if not bool(gemini_status.get("ready")):
         issues.append(
-            "Gemini is not ready. Configure a valid GEMINI/GOOGLE API key or Vertex AI credentials."  # noqa: E501
+            "Gemini is not ready. Configure a valid API key or Vertex AI."
         )
 
     if not bool(firebase_status.get("ready")):
         issues.append(
-            "Firebase Auth is not ready. Confirm Firebase Admin SDK and project configuration."  # noqa: E501
+            "Firebase Auth is not ready. Confirm Admin SDK configuration."
         )
 
     if not bool(tasks_status.get("ready")):
         issues.append(
-            "Cloud Tasks is not ready. Verify SDK install, queue config, and target URL."  # noqa: E501
+            "Cloud Tasks is not ready. Verify SDK, queue, and target URL."
         )
 
     if not bool(secret_status.get("ready")):
         issues.append(
-            "Secret Manager is not ready. Verify SDK install and GEMINI_API_KEY_SECRET configuration."  # noqa: E501
+            "Secret Manager is not ready. Verify SDK and GEMINI_API_KEY_SECRET."
         )
 
     if not observability_status.get("cloud_logging_enabled", False):
         issues.append(
-            "Cloud Logging is not enabled. Verify GOOGLE_CLOUD_PROJECT and service account IAM."  # noqa: E501
+            "Cloud Logging is not enabled. Verify project ID and IAM."
         )
 
     if not observability_status.get("error_reporting_enabled", False):
         issues.append(
-            "Error Reporting is not enabled. Verify Cloud Error Reporting permissions."  # noqa: E501
+            "Error Reporting is not enabled. Verify Cloud Error permissions."
         )
 
     return issues
@@ -79,9 +85,10 @@ def _compute_blocking_issues(
 def get_google_services_status(
     include_observability_issues: bool = Query(
         default=True,
-        description="Include Cloud Logging/Error Reporting checks as deployment blockers.",  # noqa: E501
+        description="Include Logging/Error Reporting as blockers.",
     ),
 ):
+    """Retrieve the current health and configuration of all integrated Google Cloud services."""
     settings = get_settings()
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "").strip() or None
     cloud_run_service = os.getenv("K_SERVICE", "").strip() or None

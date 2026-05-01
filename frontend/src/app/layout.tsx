@@ -47,13 +47,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <AppAnalytics />
-        <header className="sr-only">
-          <h1>MatdaanPath: Election Process Education Assistant</h1>
-        </header>
-        
-        <main className="main-content" id="main-content">
-          {children}
-        </main>
+        {children}
       </body>
     </html>
   );
