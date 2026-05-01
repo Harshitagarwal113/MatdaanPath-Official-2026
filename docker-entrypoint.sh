@@ -63,7 +63,14 @@ else
   echo "[entrypoint] Bootstrap skipped (RUN_BOOTSTRAP=${RUN_BOOTSTRAP}, effective=${run_bootstrap})."
 fi
 
-echo "[entrypoint] Listing files in /app:"
-ls -R /app
+# Start uvicorn in the background
+echo "[entrypoint] Starting Uvicorn..."
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info --proxy-headers &
 
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/app.conf
+# Wait for uvicorn to start
+echo "[entrypoint] Waiting for Uvicorn to be ready..."
+sleep 5
+
+# Start nginx in the foreground
+echo "[entrypoint] Starting Nginx..."
+nginx -g "daemon off;"
