@@ -64,13 +64,13 @@ export default function Timeline() {
           <p className="status-note" style={{ marginBottom: "1rem" }}>
             Step {activeStep + 1} of {stages.length}
           </p>
-          <div className="timeline-flow" style={{ display: "flex", flexDirection: "column" }}>
+          <div className="timeline-flow" role="list" aria-label="Election journey stages" style={{ display: "flex", flexDirection: "column" }}>
             {stages.map((stage, index) => {
               const isActive = index === activeStep;
               const isCompleted = index < activeStep;
 
               return (
-                <div key={stage.id} className="timeline-item" style={{ display: "flex", gap: "2rem" }}>
+                <div key={stage.id} className="timeline-item" role="listitem" style={{ display: "flex", gap: "2rem" }}>
                   <div className="item-rail" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                     <div
                       className="item-dot"
@@ -110,6 +110,7 @@ export default function Timeline() {
                     type="button"
                     className={`item-content card-premium ${isActive ? "active" : ""}`}
                     aria-current={isActive ? "step" : undefined}
+                    aria-label={`${stage.name}. Step ${index + 1} of ${stages.length}`}
                     onClick={() => handleStageSelect(index, stage.name)}
                     style={{
                       flex: 1,

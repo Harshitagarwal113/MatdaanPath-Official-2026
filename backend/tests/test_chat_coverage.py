@@ -12,6 +12,7 @@ from app.api.chat import (
     chat,
     ChatRequest,
 )
+import app.api.chat as chat_module
 
 
 # test _init_client permutations
@@ -155,3 +156,19 @@ async def test_chat_exceptions(mock_report, mock_context, mock_client):
     for _ in range(CHAT_RATE_LIMIT_REQUESTS):
         _is_rate_limited("test-host")
     assert _is_rate_limited("test-host")
+
+
+def test_chat_service_status_does_not_reinitialize_when_client_exists():
+    original_provider = chat_module._provider
+    original_client = chat_module._client
+    chat_module._provider = "unconfigured"
+    chat_module._client = MagicMock()
+
+    with patch("app.api.chat._init_client") as mock_init:
+        status = chat_module.get_chat_service_status()
+        assert status["gemini_enabled"] is True
+        assert status["ready"] is True
+        mock_init.assert_not_called()
+
+    chat_module._provider = original_provider
+    chat_module._client = original_client

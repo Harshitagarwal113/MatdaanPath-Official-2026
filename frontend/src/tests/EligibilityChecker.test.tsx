@@ -80,6 +80,9 @@ describe("EligibilityChecker", () => {
     fireEvent.click(yesButtons[0]);
     fireEvent.click(yesButtons[1]);
 
+    expect(yesButtons[0]).toHaveAttribute("aria-pressed", "true");
+    expect(yesButtons[1]).toHaveAttribute("aria-pressed", "true");
+
     await waitFor(() => {
       expect(screen.getByText(/Likely Eligible/i)).toBeInTheDocument();
     });
@@ -98,6 +101,14 @@ describe("EligibilityChecker", () => {
     await waitFor(() => {
       expect(screen.getByText(/Needs Review/i)).toBeInTheDocument();
       expect(screen.getByText(/Review these answers again/i)).toBeInTheDocument();
+    });
+  });
+
+  it("exposes eligibility questions as a grouped fieldset", async () => {
+    render(<EligibilityChecker />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("group", { name: /Eligibility Questions/i })).toBeInTheDocument();
     });
   });
 });

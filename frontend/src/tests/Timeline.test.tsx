@@ -42,10 +42,13 @@ describe("Timeline", () => {
     render(<Timeline />);
 
     await waitFor(() => {
+      expect(screen.getByRole("list", { name: /Election journey stages/i })).toBeInTheDocument();
       expect(screen.getByText(/Voter Registration/i)).toBeInTheDocument();
       expect(screen.getByText(/Polling Day/i)).toBeInTheDocument();
       expect(screen.getByText(/Step 1 of 2/i)).toBeInTheDocument();
     });
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: /Polling Day/i }));
     expect(screen.getByText(/Step 2 of 2/i)).toBeInTheDocument();

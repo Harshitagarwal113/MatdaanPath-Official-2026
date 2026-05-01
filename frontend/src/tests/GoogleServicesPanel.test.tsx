@@ -72,6 +72,7 @@ describe("GoogleServicesPanel", () => {
     render(<GoogleServicesPanel />);
 
     await waitFor(() => {
+      expect(screen.getByRole("list", { name: /Google service readiness checks/i })).toBeInTheDocument();
       expect(screen.getByText(/Gemini Assistant/i)).toBeInTheDocument();
       expect(screen.getByText(/Cloud Run Runtime/i)).toBeInTheDocument();
       expect(screen.getByText(/Firebase Auth/i)).toBeInTheDocument();
@@ -79,6 +80,7 @@ describe("GoogleServicesPanel", () => {
       expect(screen.getByText(/matdaanpath-api/i)).toBeInTheDocument();
     });
 
+    expect(screen.getAllByRole("listitem").length).toBeGreaterThanOrEqual(7);
     expect(screen.getAllByText(/Ready/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Needs Config/i)).toBeInTheDocument();
   });

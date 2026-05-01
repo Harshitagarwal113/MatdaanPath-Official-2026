@@ -41,4 +41,14 @@ describe("RegionSelector", () => {
 
     expect(onRegionChange).toHaveBeenCalledWith(2);
   });
+
+  it("restores prior region selection from local storage", async () => {
+    window.localStorage.setItem("matdaanpath:selected-region-id:v1", "1");
+    const onRegionChange = vi.fn();
+    render(<RegionSelector onRegionChange={onRegionChange} />);
+
+    const regionSelect = await screen.findByLabelText(/Choose a region/i);
+    expect(regionSelect).toHaveValue("1");
+    expect(regionSelect).toHaveAttribute("aria-describedby", "region-helper");
+  });
 });

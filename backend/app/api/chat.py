@@ -328,7 +328,7 @@ _FALLBACK_DISCLAIMER = (
 
 def get_chat_service_status() -> dict[str, str | bool]:
     """Retrieve the current health and configuration status of the AI chat service."""
-    if _provider == "unconfigured":
+    if _provider == "unconfigured" and _client is None:
         _init_client()
 
     settings = get_settings()
@@ -371,7 +371,7 @@ async def chat(
     context, sources = get_context_bundle(request.message, session)
     system_instruction = _SYSTEM_PROMPT + context
 
-    if _provider == "unconfigured":
+    if _provider == "unconfigured" and _client is None:
         _init_client()
 
     if _client is None:

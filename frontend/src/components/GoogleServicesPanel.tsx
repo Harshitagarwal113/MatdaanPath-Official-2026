@@ -130,13 +130,14 @@ export default function GoogleServicesPanel() {
         </div>
       ) : null}
 
-      <div style={{ display: "grid", gap: "1rem" }}>
+      <div role="list" aria-label="Google service readiness checks" style={{ display: "grid", gap: "1rem" }}>
         {serviceCards.map((service) => {
           const Icon = service.icon;
 
           return (
             <div
               key={service.title}
+              role="listitem"
               style={{
                 display: "flex",
                 gap: "0.9rem",

@@ -149,7 +149,7 @@ export default function EligibilityChecker() {
         <p style={{ color: "var(--text-muted)" }}>Answer each question to assess whether you appear eligible to vote.</p>
       </header>
 
-      <p className="status-note" style={{ marginBottom: "1rem" }}>
+      <p className="status-note" style={{ marginBottom: "1rem" }} aria-live="polite">
         {progressLabel}
       </p>
 
@@ -168,12 +168,12 @@ export default function EligibilityChecker() {
         </p>
       ) : null}
 
-      <div
+      <fieldset
         className="rules-stack"
-        role="group"
         aria-label="Eligibility Questions"
-        style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
+        style={{ display: "flex", flexDirection: "column", gap: "1.5rem", border: 0, padding: 0, margin: 0 }}
       >
+        <legend className="sr-only">Eligibility Questions</legend>
         {rules.map((rule) => (
           <div
             key={rule.id}
@@ -187,14 +187,25 @@ export default function EligibilityChecker() {
             }}
           >
             <div className="rule-info">
-              <h4 style={{ fontSize: "1.1rem", marginBottom: "0.25rem" }}>{rule.question}</h4>
-              <p style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>{rule.requirement_description}</p>
+              <h4 id={`question-${rule.id}`} style={{ fontSize: "1.1rem", marginBottom: "0.25rem" }}>
+                {rule.question}
+              </h4>
+              <p id={`question-${rule.id}-hint`} style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>
+                {rule.requirement_description}
+              </p>
             </div>
-            <div className="rule-actions" style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <div
+              className="rule-actions"
+              role="group"
+              aria-labelledby={`question-${rule.id}`}
+              aria-describedby={`question-${rule.id}-hint`}
+              style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}
+            >
               <button
                 type="button"
                 className={`btn-premium ${answers[rule.rule_key] === true ? "btn-brand" : ""}`}
                 aria-label={`Yes, ${rule.question}`}
+                aria-pressed={answers[rule.rule_key] === true}
                 onClick={() => handleAnswer(rule, true)}
                 style={{
                   padding: "0.6rem 1.5rem",
@@ -208,6 +219,7 @@ export default function EligibilityChecker() {
               <button
                 type="button"
                 aria-label={`No, ${rule.question}`}
+                aria-pressed={answers[rule.rule_key] === false}
                 onClick={() => handleAnswer(rule, false)}
                 style={{
                   padding: "0.6rem 1.5rem",
@@ -224,7 +236,7 @@ export default function EligibilityChecker() {
             </div>
           </div>
         ))}
-      </div>
+      </fieldset>
 
       {canEvaluate && (isEvaluating || result || evaluationError) ? (
         <div

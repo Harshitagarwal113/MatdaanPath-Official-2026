@@ -86,6 +86,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-DNS-Prefetch-Control"] = "off"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "object-src 'none'; "
+            "frame-ancestors 'none'; "
             "img-src 'self' data: https:; "
             "script-src 'self' 'unsafe-inline' https://www.gstatic.com; "
             "style-src 'self' 'unsafe-inline'; "

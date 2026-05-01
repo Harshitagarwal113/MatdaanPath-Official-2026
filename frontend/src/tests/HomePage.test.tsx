@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Home from "@/app/page";
+import { requestChatOpen } from "@/lib/chat-events";
 
 vi.mock("@/components/Timeline", () => ({
   default: () => <div>Timeline Content</div>,
@@ -65,5 +66,13 @@ describe("Home page", () => {
     expect(registerNowLink).toHaveAttribute("target", "_blank");
     expect(registerNowLink).toHaveAttribute("rel", expect.stringContaining("noopener"));
     expect(registerNowLink).toHaveAttribute("rel", expect.stringContaining("noreferrer"));
+  });
+
+  it("exposes an accessible tablist and opens chat from the CTA", () => {
+    render(<Home />);
+
+    expect(screen.getByRole("tablist", { name: /Project Features/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Open Chatbot/i }));
+    expect(requestChatOpen).toHaveBeenCalledTimes(1);
   });
 });

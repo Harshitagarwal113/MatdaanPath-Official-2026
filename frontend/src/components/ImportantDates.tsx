@@ -99,6 +99,7 @@ export default function ImportantDates({ regionId }: { regionId: number | null }
       <div
         className="dates-stack"
         role="list"
+        aria-busy={isLoading}
         aria-label="Upcoming deadlines list"
         style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
       >
@@ -152,7 +153,13 @@ export default function ImportantDates({ regionId }: { regionId: number | null }
                       Set reminder
                     </button>
                     {reminderStateByDeadline[deadline.id] ? (
-                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{reminderStateByDeadline[deadline.id]}</span>
+                      <span
+                        style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}
+                        role="status"
+                        aria-live="polite"
+                      >
+                        {reminderStateByDeadline[deadline.id]}
+                      </span>
                     ) : null}
                   </div>
                 </div>

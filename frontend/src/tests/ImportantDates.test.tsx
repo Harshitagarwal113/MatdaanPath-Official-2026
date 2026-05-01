@@ -49,6 +49,7 @@ describe("ImportantDates", () => {
     render(<ImportantDates regionId={null} />);
 
     await waitFor(() => {
+      expect(screen.getByRole("list", { name: /Upcoming deadlines list/i })).toHaveAttribute("aria-busy", "false");
       expect(screen.getByText(/Registration Deadline/i)).toBeInTheDocument();
     });
 
@@ -60,6 +61,7 @@ describe("ImportantDates", () => {
         expect.objectContaining({ method: "POST" }),
       );
       expect(screen.getByText(/Reminder scheduled/i)).toBeInTheDocument();
+      expect(screen.getByText(/Reminder scheduled/i)).toHaveAttribute("role", "status");
     });
   });
 });

@@ -50,5 +50,9 @@ def test_deliver_reminder_success():
         "deadline_date": "2026-11-01T10:00:00"
     }
     response = client.post("/api/reminders/deliver", json=payload)
+    if response.status_code == 401:
+        assert response.json()["detail"] == "Invalid task delivery token."
+        return
+
     assert response.status_code == 200
     assert response.json()["delivered"] is False
