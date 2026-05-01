@@ -33,6 +33,7 @@ load_dotenv(override=True)
 
 setup_logging()
 logger = get_logger("matdaanpath")
+logger.info("main.py loaded successfully")
 
 
 def _get_allowed_origins() -> list[str]:

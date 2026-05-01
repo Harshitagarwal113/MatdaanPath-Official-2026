@@ -42,6 +42,7 @@ ENV GRPC_POLL_STRATEGY=poll
 ENV GRPC_DNS_RESOLVER=native
 ENV GRPC_ENABLE_FORK_SUPPORT=0
 ENV GRPC_VERBOSITY=ERROR
+ENV PYTHONUNBUFFERED=1
 
 # Install nginx, supervisor, and libpq for psycopg2
 RUN apt-get update && \
