@@ -32,7 +32,7 @@ faulthandler.enable()
 import sys
 faulthandler.dump_traceback_later(10, repeat=True, file=sys.stderr)
 
-setup_logging()
+# setup_logging()
 logger = get_logger("matdaanpath")
 
 
