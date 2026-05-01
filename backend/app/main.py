@@ -31,7 +31,7 @@ from app.core.logging import (
 
 load_dotenv(override=True)
 
-setup_logging()
+# setup_logging()
 logger = get_logger("matdaanpath")
 logger.info("main.py loaded successfully")
 
