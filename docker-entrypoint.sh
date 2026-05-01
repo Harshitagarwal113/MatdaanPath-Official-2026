@@ -63,4 +63,7 @@ else
   echo "[entrypoint] Bootstrap skipped (RUN_BOOTSTRAP=${RUN_BOOTSTRAP}, effective=${run_bootstrap})."
 fi
 
+echo "[entrypoint] Listing files in /app:"
+ls -R /app
+
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/app.conf
