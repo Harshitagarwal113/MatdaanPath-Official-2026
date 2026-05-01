@@ -73,4 +73,5 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 EXPOSE 8080
 
 # Render nginx config, run bootstrap once, then start supervisor.
-CMD ["/bin/sh", "/usr/local/bin/docker-entrypoint.sh"]
+# Temporary debug: Run uvicorn directly on Cloud Run PORT
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
