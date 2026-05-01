@@ -64,13 +64,7 @@ else
 fi
 
 # Start uvicorn in the background
-echo "[entrypoint] Starting Uvicorn..."
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info --proxy-headers &
 
-# Wait for uvicorn to start
-echo "[entrypoint] Waiting for Uvicorn to be ready..."
-sleep 5
-
-# Start nginx in the foreground
-echo "[entrypoint] Starting Nginx..."
-nginx -g "daemon off;"
+# Start nginx in the foreground (as PID 1)
+exec nginx -g "daemon off;"
